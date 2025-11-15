@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Регистрация | Nanny Platform</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="background">
+    <div class="form-card">
+        <h2>🐾 РЕГИСТРАЦИЯ</h2>
+
+        <div id="error-box" class="error-box"></div>
+
+        <form id="registerForm">
+            <input type="text" name="full_name" placeholder="Полное имя" required>
+            <input type="email" name="email" placeholder="Email" required>
+            <input type="tel" name="phone" placeholder="+7 777 123 45 67" required>
+            <input type="password" name="password" placeholder="Пароль (мин. 8 символов)" required>
+
+            <p class="role-label">ВЫБЕРИТЕ РОЛЬ:</p>
+            <div class="role-buttons">
+                <label>
+                    <input type="radio" name="role" value="owner" required>
+                    🏠 ВЛАДЕЛЕЦ
+                </label>
+                <label>
+                    <input type="radio" name="role" value="sitter" required>
+                    👨‍💼 ПЕТ-СИТТЕР
+                </label>
+            </div>
+
+            <!-- Дополнительные поля для няни (скрыты по умолчанию) -->
+            <div id="sitterFields" style="display: none;">
+                <input type="number" name="experience_years" placeholder="Опыт работы (лет)" min="0" max="50">
+                <textarea name="certificates" placeholder="Сертификаты и образование" rows="3"></textarea>
+                <textarea name="preferences" placeholder="Предпочтения (какие питомцы)" rows="2"></textarea>
+                <input type="text" name="location" placeholder="Город / район">
+            </div>
+
+            <button type="submit">ЗАРЕГИСТРИРОВАТЬСЯ</button>
+        </form>
+
+        <p class="switch-text">
+            Уже есть аккаунт? <a href="/login">ВОЙТИ</a>
+        </p>
+    </div>
+</div>
+
+<script>
+// Показать/скрыть поля для няни
+document.querySelectorAll('input[name="role"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+        const sitterFields = document.getElementById('sitterFields');
+        if (e.target.value === 'sitter') {
+            sitterFields.style.display = 'block';
+            sitterFields.querySelectorAll('input, textarea').forEach(field => {
+                field.required = true;
+            });
+        } else {
+            sitterFields.style.display = 'none';
+            sitterFields.querySelectorAll('input, textarea').forEach(field => {
+                field.required = false;
+            });
+        }
+    });
+});
+
+// Валидация и отправка формы
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errorBox = document.getElementById('error-box');
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData);
+
+    // Валидация пароля
+    const password = data.password;
+    if (password.length < 8) {
+        errorBox.style.display = 'block';
+        errorBox.innerText = 'Пароль должен быть не короче 8 символов';
+        return;
+    }
+
+    // Выбор endpoint
+    const endpoint = data.role === 'owner' 
+        ? '/api/auth/register/owner' 
+        : '/api/auth/register/sitter';
+
+    try {
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            alert('✅ ' + result.message);
+            window.location.href = '/login';
+        } else {
+            errorBox.style.display = 'block';
+            errorBox.innerText = result.error || 'Ошибка регистрации';
+        }
+    } catch (err) {
+        errorBox.style.display = 'block';
+        errorBox.innerText = 'Ошибка соединения с сервером';
+    }
+});
+</script>
+</body>
+</html>
