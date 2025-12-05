@@ -81,22 +81,33 @@ func (h *Handler) GetBooking(w http.ResponseWriter, r *http.Request) {
 
 	respondWithJSON(w, http.StatusOK, booking)
 }
-
 func (h *Handler) GetOwnerBookings(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	ownerID, err := strconv.Atoi(vars["owner_id"])
+	ownerIDStr := vars["owner_id"]
+
+	ownerID, err := strconv.Atoi(ownerIDStr)
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "неверный ID владельца")
 		return
 	}
 
+	// Получаем бронирования у сервиса
 	bookings, err := h.service.GetOwnerBookings(ownerID)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, bookings)
+	// 🔴 ВАЖНО:
+	// Если сервис вернул nil-срез, json.Encoder закодирует его как null.
+	// Фронт ожидает массив, поэтому подменяем на пустой массив.
+	var resp interface{} = bookings
+	if bookings == nil {
+		// []any{} сериализуется в "[]"
+		resp = []any{}
+	}
+
+	respondWithJSON(w, http.StatusOK, resp)
 }
 
 func (h *Handler) GetSitterBookings(w http.ResponseWriter, r *http.Request) {

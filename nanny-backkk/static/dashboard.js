@@ -291,10 +291,370 @@ async function searchServices() {
 
 
 // Заглушка для отзывов
+// ==================== ОТЗЫВЫ ====================
+// ==================== ЗАГРУЗКА ОТЗЫВОВ ====================
 async function loadReviews() {
-    document.getElementById('reviewsList').innerHTML = '<p>Функция в разработке</p>';
+    const user = authData?.user; // используем уже существующий authData
+    const container = document.getElementById('reviewsList');
+
+    if (!container) {
+        console.error('loadReviews: элемент #reviewsList не найден');
+        return;
+    }
+
+    if (!user || !user.id) {
+        console.error('loadReviews: нет пользователя в authData:', authData);
+        container.innerHTML = `
+            <div class="card" style="text-align: center; padding: 40px; background: #fff3cd; border-color: #ffc107;">
+                <p style="font-size: 48px; margin-bottom: 20px;">⚠️</p>
+                <h3 style="margin-bottom: 10px; color: #856404;">Вы не авторизованы</h3>
+                <p style="color: #856404;">Пожалуйста, войдите в систему, чтобы просмотреть отзывы.</p>
+            </div>
+        `;
+        return;
+    }
+
+    try {
+        // Получаем все бронирования владельца ЧЕРЕЗ authFetch
+        const bookingsRes = await authFetch(`/api/owners/${user.id}/bookings`);
+
+        if (!bookingsRes) {
+            throw new Error('Сервер не вернул ответ по бронированиям (bookingsRes = null)');
+        }
+
+        console.log('loadReviews: статус /bookings =', bookingsRes.status);
+
+        // Если сервер вернул 204 No Content либо просто ничего
+        if (bookingsRes.status === 204) {
+            console.log('loadReviews: 204 No Content — считаем, что бронирований нет');
+            renderEmptyReviews(container);
+            return;
+        }
+
+        if (!bookingsRes.ok) {
+            const text = await bookingsRes.text().catch(() => '');
+            console.error('loadReviews: ошибка ответа /bookings:', bookingsRes.status, text);
+            throw new Error(`Ошибка загрузки бронирований (код ${bookingsRes.status})`);
+        }
+
+        let bookings;
+        try {
+            bookings = await bookingsRes.json();
+        } catch (jsonErr) {
+            console.error('loadReviews: не удалось распарсить JSON бронирований:', jsonErr);
+            throw new Error('Некорректный JSON от сервера при загрузке бронирований');
+        }
+
+        console.log('loadReviews: bookings JSON =', bookings);
+
+        // ✅ Защита от null / неправильного формата
+        let safeBookings;
+        if (Array.isArray(bookings)) {
+            safeBookings = bookings;
+        } else if (bookings === null || typeof bookings === 'undefined') {
+            console.warn('loadReviews: bookings = null/undefined, используем пустой массив');
+            safeBookings = [];
+        } else {
+            console.warn('loadReviews: bookings не массив, но продолжаем как с пустым массивом. Значение:', bookings);
+            safeBookings = [];
+        }
+
+        // Фильтруем завершённые бронирования
+        const completedBookings = safeBookings.filter(b => b && b.status === 'completed');
+        console.log('loadReviews: completedBookings =', completedBookings);
+
+        // Для каждого завершённого бронирования проверяем, есть ли отзыв
+        const results = await Promise.allSettled(
+            completedBookings.map(async (booking) => {
+                try {
+                    const reviewRes = await authFetch(`/api/bookings/${booking.booking_id}/review`);
+
+                    if (!reviewRes) {
+                        console.warn('loadReviews: reviewRes = null для booking', booking.booking_id);
+                        return null;
+                    }
+
+                    if (!reviewRes.ok) {
+                        // 404 — просто значит, что отзыва нет
+                        if (reviewRes.status !== 404) {
+                            const txt = await reviewRes.text().catch(() => '');
+                            console.warn(
+                                'loadReviews: неожиданный статус при загрузке отзыва',
+                                booking.booking_id,
+                                reviewRes.status,
+                                txt
+                            );
+                        }
+                        return null;
+                    }
+
+                    const review = await reviewRes.json();
+                    return { ...review, booking };
+                } catch (e) {
+                    console.error('loadReviews: ошибка при загрузке отзыва для booking', booking.booking_id, e);
+                    return null;
+                }
+            })
+        );
+
+        const reviews = results
+            .filter(r => r.status === 'fulfilled' && r.value)
+            .map(r => r.value);
+
+        console.log('loadReviews: итоговый список reviews =', reviews);
+
+        if (reviews.length === 0) {
+            renderEmptyReviews(container);
+            return;
+        }
+
+        // Рендерим список отзывов
+        container.innerHTML = reviews.map(review => `
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                            <strong>Рейтинг:</strong>
+                            <span style="color: #f39c12; font-size: 20px;">
+                                ${'⭐'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}
+                            </span>
+                            <span style="color: #666;">(${review.rating}/5)</span>
+                        </div>
+
+                        <p><strong>Бронирование:</strong> #${review.booking_id}</p>
+                        <p><strong>Няня:</strong> ID ${review.sitter_id}</p>
+                        <p><strong>Дата отзыва:</strong> ${new Date(review.created_at).toLocaleDateString('ru-RU')}</p>
+
+                        ${review.comment ? `
+                            <div style="margin-top: 15px; padding: 15px; background: #f9f9f9; border-radius: 8px; border-left: 4px solid #667eea;">
+                                <strong>Ваш комментарий:</strong>
+                                <p style="margin-top: 8px; line-height: 1.6;">${review.comment}</p>
+                            </div>
+                        ` : '<p style="color: #999; font-style: italic;">Комментарий не оставлен</p>'}
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 10px; min-width: 140px;">
+                        <button onclick="editReview(${review.review_id}, ${review.rating}, \`${(review.comment || '').replace(/`/g, '\\`')}\`)"
+                                class="btn btn-secondary">
+                            ✏️ Редактировать
+                        </button>
+
+                        <button onclick="deleteReview(${review.review_id})"
+                                class="btn btn-danger">
+                            🗑️ Удалить
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+    } catch (err) {
+        console.error('Ошибка загрузки отзывов:', err);
+
+        container.innerHTML = `
+            <div class="card" style="text-align: center; padding: 40px; background: #fff3cd; border-color: #ffc107;">
+                <p style="font-size: 48px; margin-bottom: 20px;">⚠️</p>
+                <h3 style="margin-bottom: 10px; color: #856404;">Ошибка загрузки отзывов</h3>
+                <p style="color: #856404;">${err.message}</p>
+                <button onclick="loadReviews()" class="btn btn-primary" style="margin-top: 20px;">
+                    🔄 Попробовать снова
+                </button>
+            </div>
+        `;
+    }
 }
 
+// Отдельная функция для "нет отзывов"
+function renderEmptyReviews(container) {
+    container.innerHTML = `
+        <div class="card" style="text-align: center; padding: 40px;">
+            <p style="font-size: 48px; margin-bottom: 20px;">⭐</p>
+            <h3 style="margin-bottom: 10px;">У вас пока нет отзывов</h3>
+            <p style="color: #666;">Отзывы появятся после завершения бронирований</p>
+        </div>
+    `;
+}
+// Редактирование отзыва
+async function editReview(reviewId, currentRating, currentComment) {
+    const modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close" onclick="this.parentElement.parentElement.remove()">&times;</span>
+            <h2>✏️ Редактировать отзыв</h2>
+            <form id="editReviewForm">
+                <div class="form-group">
+                    <label>Рейтинг (1-5):</label>
+                    <select id="editReviewRating" required>
+                        <option value="5" ${currentRating === 5 ? 'selected' : ''}>⭐⭐⭐⭐⭐ Отлично</option>
+                        <option value="4" ${currentRating === 4 ? 'selected' : ''}>⭐⭐⭐⭐ Хорошо</option>
+                        <option value="3" ${currentRating === 3 ? 'selected' : ''}>⭐⭐⭐ Средне</option>
+                        <option value="2" ${currentRating === 2 ? 'selected' : ''}>⭐⭐ Плохо</option>
+                        <option value="1" ${currentRating === 1 ? 'selected' : ''}>⭐ Ужасно</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Комментарий:</label>
+                    <textarea id="editReviewComment" rows="4" placeholder="Расскажите о вашем опыте...">${currentComment}</textarea>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" onclick="this.closest('.modal').remove()" class="btn btn-secondary">
+                        Отмена
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        💾 Сохранить изменения
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    document.getElementById('editReviewForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const newRating = parseInt(document.getElementById('editReviewRating').value);
+        const newComment = document.getElementById('editReviewComment').value.trim();
+
+        try {
+            const res = await authFetch(`/api/reviews/${reviewId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    rating: newRating,
+                    comment: newComment
+                })
+            });
+
+            if (res.ok) {
+                alert('✅ Отзыв успешно обновлён!');
+                modal.remove();
+                loadReviews();
+            } else {
+                const err = await res.json().catch(() => ({}));
+                alert('❌ Ошибка: ' + (err.error || `код ${res.status}`));
+            }
+        } catch (err) {
+            console.error('Ошибка обновления отзыва:', err);
+            alert('❌ Ошибка соединения с сервером');
+        }
+    });
+}
+
+// Удаление отзыва
+async function deleteReview(reviewId) {
+    if (!confirm('🗑️ Вы уверены, что хотите удалить этот отзыв?\n\nЭто действие нельзя отменить.')) {
+        return;
+    }
+
+    try {
+        const res = await authFetch(`/api/reviews/${reviewId}`, {
+            method: 'DELETE'
+        });
+
+        if (res.ok) {
+            alert('✅ Отзыв успешно удалён');
+            loadReviews();
+        } else {
+            const err = await res.json().catch(() => ({}));
+            alert('❌ Ошибка удаления: ' + (err.error || `код ${res.status}`));
+        }
+    } catch (err) {
+        console.error('Ошибка удаления отзыва:', err);
+        alert('❌ Ошибка соединения с сервером');
+    }
+}
+
+// ==================== ДОБАВИТЬ ОТЗЫВ (из бронирований) ====================
+
+function showReviewModal(bookingId, sitterId) {
+    const modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close" onclick="this.parentElement.parentElement.remove()">&times;</span>
+            <h2>⭐ Оставить отзыв</h2>
+            <p style="color: #666; margin-bottom: 20px;">
+                Расскажите о вашем опыте с няней
+            </p>
+            <form id="reviewForm">
+                <div class="form-group">
+                    <label>Рейтинг (1-5): <span style="color: red;">*</span></label>
+                    <select id="reviewRating" required>
+                        <option value="">-- Выберите рейтинг --</option>
+                        <option value="5">⭐⭐⭐⭐⭐ Отлично</option>
+                        <option value="4">⭐⭐⭐⭐ Хорошо</option>
+                        <option value="3">⭐⭐⭐ Средне</option>
+                        <option value="2">⭐⭐ Плохо</option>
+                        <option value="1">⭐ Ужасно</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Комментарий:</label>
+                    <textarea id="reviewComment" rows="5" 
+                              placeholder="Что вам понравилось или не понравилось?&#10;Как няня обращалась с питомцем?&#10;Рекомендуете ли вы эту няню другим?"></textarea>
+                    <small style="color: #666;">Комментарий необязателен, но будет полезен другим владельцам</small>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" onclick="this.closest('.modal').remove()" class="btn btn-secondary">
+                        Отмена
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        📤 Отправить отзыв
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    document.getElementById('reviewForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await submitReview(bookingId, sitterId);
+        modal.remove();
+    });
+}
+
+// Отправка отзыва на сервер
+async function submitReview(bookingId, sitterId) {
+    const user = JSON.parse(localStorage.getItem('user'));
+    const rating = parseInt(document.getElementById('reviewRating').value);
+    const comment = document.getElementById('reviewComment').value.trim();
+
+    if (!rating) {
+        alert('❌ Пожалуйста, выберите рейтинг');
+        return;
+    }
+
+    try {
+        const res = await authFetch('/api/reviews', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                booking_id: bookingId,
+                owner_id: user.id,
+                sitter_id: sitterId,
+                rating: rating,
+                comment: comment
+            })
+        });
+
+        if (res.ok) {
+            const result = await res.json().catch(() => ({}));
+            console.log('submitReview: результат создания отзыва =', result);
+            alert('✅ Спасибо за ваш отзыв!\n\nОн поможет другим владельцам выбрать няню.');
+
+            document.querySelector('[data-tab="reviews"]').click();
+            loadReviews();
+        } else {
+            const err = await res.json().catch(() => ({}));
+            alert('❌ Ошибка: ' + (err.error || `код ${res.status}`));
+        }
+    } catch (err) {
+        console.error('Ошибка отправки отзыва:', err);
+        alert('❌ Ошибка соединения с сервером');
+    }
+}
 // ======================
 // Модальные окна
 // ======================

@@ -71,7 +71,7 @@ type Review struct {
 	OwnerID   int       `json:"owner_id"`
 	SitterID  int       `json:"sitter_id"`
 	Rating    int       `json:"rating"`
-	Comment   string    `json:"comment,omitempty"`
+	Comment   string    `json:"comment"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
