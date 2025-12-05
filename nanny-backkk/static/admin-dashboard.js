@@ -1,10 +1,45 @@
-// Проверка авторизации
-const user = JSON.parse(localStorage.getItem('user'));
-if (!user || user.role !== 'admin') {
+// ======================
+// JWT + Авторизация
+// ======================
+
+let authData = null;
+try {
+    const raw = localStorage.getItem('auth');
+    authData = raw ? JSON.parse(raw) : null;
+} catch (_) {
+    authData = null;
+}
+
+if (!authData || !authData.token || !authData.user || authData.user.role !== 'admin') {
     window.location.href = '/login';
 }
 
+const token = authData.token;
+const user = authData.user;
+
+// Универсальная функция авторизованного fetch
+async function authFetch(url, options = {}) {
+    const headers = options.headers || {};
+    headers['Authorization'] = `Bearer ${token}`;
+    if (!headers['Content-Type'] && options.method && options.method !== 'GET') {
+        headers['Content-Type'] = 'application/json';
+    }
+
+    const res = await fetch(url, { ...options, headers });
+
+    if (res.status === 401) {
+        alert('Сессия истекла. Войдите снова.');
+        logout();
+        return Promise.reject(new Error('Unauthorized'));
+    }
+
+    return res;
+}
+
+// ======================
 // Переключение табов
+// ======================
+
 document.querySelectorAll('.sidebar-menu a').forEach(link => {
     link.addEventListener('click', (e) => {
         e.preventDefault();
@@ -21,47 +56,35 @@ document.querySelectorAll('.sidebar-menu a').forEach(link => {
 });
 
 function loadTabData(tab) {
-    switch(tab) {
-        case 'overview':
-            loadOverview();
-            break;
-        case 'pending':
-            loadPendingSitters();
-            break;
-        case 'users':
-            loadUsers();
-            break;
-        case 'sitters':
-            loadSitters();
-            break;
+    switch (tab) {
+        case 'overview': loadOverview(); break;
+        case 'pending': loadPendingSitters(); break;
+        case 'users':   loadUsers(); break;
+        case 'sitters': loadSitters(); break;
     }
 }
 
-// Загрузка обзора
+// ======================
+// ОБЗОР
+// ======================
+
 async function loadOverview() {
     try {
-        // Загружаем всех пользователей
-        const usersRes = await fetch('/api/admin/users');
+        const usersRes = await authFetch('/api/admin/users');
         const users = await usersRes.json();
         document.getElementById('totalUsers').textContent = users.length;
 
-        // Фильтруем нянь
         const sitters = users.filter(u => u.role === 'sitter');
         document.getElementById('totalSitters').textContent = sitters.length;
 
-        // Загружаем заявки нянь
-        const pendingRes = await fetch('/api/admin/sitters/pending');
+        const pendingRes = await authFetch('/api/admin/sitters/pending');
         const pending = await pendingRes.json();
         document.getElementById('pendingCount').textContent = pending.length;
 
-        // Считаем одобренных
-        // Для этого нам нужно получить всех нянь с полной информацией
-        // В реальности это можно оптимизировать
         document.getElementById('approvedCount').textContent = sitters.length - pending.length;
 
-        // Последние 5 пользователей
-        const recentDiv = document.getElementById('recentUsers');
         const recent = users.slice(0, 5);
+        const recentDiv = document.getElementById('recentUsers');
 
         recentDiv.innerHTML = `
             <table>
@@ -80,7 +103,7 @@ async function loadOverview() {
                             <td>#${u.user_id}</td>
                             <td>${u.full_name}</td>
                             <td>${u.email}</td>
-                            <td><span class="badge badge-${u.role === 'admin' ? 'approved' : 'pending'}">${u.role}</span></td>
+                            <td><span class="badge badge-${u.role}">${u.role}</span></td>
                             <td>${new Date(u.created_at).toLocaleDateString('ru-RU')}</td>
                         </tr>
                     `).join('')}
@@ -92,61 +115,62 @@ async function loadOverview() {
     }
 }
 
-// Загрузка заявок нянь
+// ======================
+// ЗАЯВКИ НЯНЬ
+// ======================
+
 async function loadPendingSitters() {
     try {
-        const res = await fetch('/api/admin/sitters/pending');
+        const res = await authFetch('/api/admin/sitters/pending');
         const sitters = await res.json();
 
-        const pendingDiv = document.getElementById('pendingSitters');
+        const div = document.getElementById('pendingSitters');
 
         if (sitters.length === 0) {
-            pendingDiv.innerHTML = '<div class="empty-state"><h3>Нет заявок на модерацию</h3></div>';
+            div.innerHTML = '<div class="empty-state"><h3>Нет заявок на модерацию</h3></div>';
             return;
         }
 
-        // Загружаем полную информацию для каждой няни
         const sittersWithDetails = await Promise.all(
             sitters.map(async (s) => {
-                try {
-                    const detailsRes = await fetch(`/api/admin/sitters/${s.sitter_id}`);
-                    return await detailsRes.json();
-                } catch {
-                    return s;
-                }
+                const dRes = await authFetch(`/api/admin/sitters/${s.sitter_id}`);
+                return await dRes.json();
             })
         );
 
-        pendingDiv.innerHTML = sittersWithDetails.map(s => `
+        div.innerHTML = sittersWithDetails.map(s => `
             <div class="card" style="margin-bottom: 20px;">
-                <h3>${s.full_name || 'Няня #' + s.sitter_id}</h3>
-                <p><strong>Email:</strong> ${s.email || '-'}</p>
-                <p><strong>Телефон:</strong> ${s.phone || '-'}</p>
-                <p><strong>Опыт:</strong> ${s.experience_years || 0} лет</p>
-                <p><strong>Сертификаты:</strong> ${s.certificates || '-'}</p>
-                <p><strong>Предпочтения:</strong> ${s.preferences || '-'}</p>
-                <p><strong>Локация:</strong> ${s.location || '-'}</p>
-                <div style="margin-top: 15px;">
-                    <button class="btn btn-success" onclick="approveSitter(${s.sitter_id})">✅ Одобрить</button>
-                    <button class="btn btn-danger" onclick="rejectSitter(${s.sitter_id})">❌ Отклонить</button>
-                    <button class="btn btn-secondary" onclick="showSitterDetails(${s.sitter_id})">👁️ Подробнее</button>
+                <h3>${s.full_name}</h3>
+                <p><strong>Email:</strong> ${s.email}</p>
+                <p><strong>Телефон:</strong> ${s.phone}</p>
+                <p><strong>Опыт:</strong> ${s.experience_years} лет</p>
+                <p><strong>Локация:</strong> ${s.location}</p>
+
+                <div class="actions" style="margin-top: 10px;">
+                    <button class="btn btn-success" onclick="approveSitter(${s.sitter_id})">Одобрить</button>
+                    <button class="btn btn-danger" onclick="rejectSitter(${s.sitter_id})">Отклонить</button>
+                    <button class="btn btn-secondary" onclick="showSitterDetails(${s.sitter_id})">Подробнее</button>
                 </div>
             </div>
         `).join('');
-    } catch (err) {
-        console.error('Ошибка загрузки заявок:', err);
+
+    } catch (e) {
+        console.error('Ошибка загрузки pending sitters', e);
     }
 }
 
-// Загрузка всех пользователей
+// ======================
+// ПОЛЬЗОВАТЕЛИ
+// ======================
+
 async function loadUsers() {
     try {
-        const res = await fetch('/api/admin/users');
+        const res = await authFetch('/api/admin/users');
         const users = await res.json();
 
-        const usersDiv = document.getElementById('usersList');
+        const div = document.getElementById('usersList');
 
-        usersDiv.innerHTML = `
+        div.innerHTML = `
             <table>
                 <thead>
                     <tr>
@@ -166,10 +190,12 @@ async function loadUsers() {
                             <td>${u.full_name}</td>
                             <td>${u.email}</td>
                             <td>${u.phone}</td>
-                            <td><span class="badge badge-${u.role === 'admin' ? 'approved' : 'pending'}">${u.role}</span></td>
+                            <td>${u.role}</td>
                             <td>${new Date(u.created_at).toLocaleDateString('ru-RU')}</td>
                             <td>
-                                ${u.role !== 'admin' ? `<button class="btn btn-danger btn-sm" onclick="deleteUser(${u.user_id}, '${u.full_name}')">Удалить</button>` : '-'}
+                                ${u.role !== 'admin'
+            ? `<button class="btn btn-danger btn-sm" onclick="deleteUser(${u.user_id}, '${u.full_name}')">Удалить</button>`
+            : '-'}
                             </td>
                         </tr>
                     `).join('')}
@@ -181,39 +207,37 @@ async function loadUsers() {
     }
 }
 
-// Загрузка всех нянь
+// ======================
+// ВСЕ НЯНИ
+// ======================
+
 async function loadSitters() {
     try {
-        const usersRes = await fetch('/api/admin/users');
+        const usersRes = await authFetch('/api/admin/users');
         const users = await usersRes.json();
 
         const sitters = users.filter(u => u.role === 'sitter');
 
-        const sittersDiv = document.getElementById('sittersList');
+        const div = document.getElementById('sittersList');
 
         if (sitters.length === 0) {
-            sittersDiv.innerHTML = '<p class="empty-state">Нет зарегистрированных нянь</p>';
+            div.innerHTML = '<p class="empty-state">Нет нянь</p>';
             return;
         }
 
-        // Загружаем детали для каждой няни
         const sittersWithDetails = await Promise.all(
             sitters.map(async (s) => {
-                try {
-                    const detailsRes = await fetch(`/api/admin/sitters/${s.user_id}`);
-                    const details = await detailsRes.json();
+                const detailsRes = await authFetch(`/api/admin/sitters/${s.user_id}`);
+                const details = await detailsRes.json();
 
-                    const ratingRes = await fetch(`/api/sitters/${s.user_id}/rating`);
-                    const rating = await ratingRes.json();
+                const ratingRes = await authFetch(`/api/sitters/${s.user_id}/rating`);
+                const rating = await ratingRes.json();
 
-                    return { ...details, rating: rating.average_rating, review_count: rating.review_count };
-                } catch {
-                    return s;
-                }
+                return { ...details, rating: rating.average_rating };
             })
         );
 
-        sittersDiv.innerHTML = `
+        div.innerHTML = `
             <table>
                 <thead>
                     <tr>
@@ -229,182 +253,139 @@ async function loadSitters() {
                 <tbody>
                     ${sittersWithDetails.map(s => `
                         <tr>
-                            <td>#${s.sitter_id || s.user_id}</td>
+                            <td>#${s.sitter_id}</td>
                             <td>${s.full_name}</td>
                             <td>${s.location || '-'}</td>
-                            <td>${s.experience_years || 0} лет</td>
-                            <td>${renderStars(s.rating || 0)} (${(s.rating || 0).toFixed(1)})</td>
+                            <td>${s.experience_years} лет</td>
+                            <td>${renderStars(s.rating || 0)}</td>
                             <td><span class="badge badge-${s.status}">${s.status}</span></td>
                             <td>
-                                <button class="btn btn-secondary btn-sm" onclick="showSitterDetails(${s.sitter_id || s.user_id})">Подробнее</button>
+                                <button onclick="showSitterDetails(${s.sitter_id})" class="btn btn-secondary btn-sm">Подробнее</button>
                             </td>
                         </tr>
                     `).join('')}
                 </tbody>
             </table>
         `;
+
     } catch (err) {
         console.error('Ошибка загрузки нянь:', err);
     }
 }
 
-// Показать детали няни
-async function showSitterDetails(sitterId) {
-    try {
-        const [detailsRes, reviewsRes, servicesRes] = await Promise.all([
-            fetch(`/api/admin/sitters/${sitterId}`),
-            fetch(`/api/sitters/${sitterId}/reviews`),
-            fetch(`/api/sitters/${sitterId}/services`)
-        ]);
+// ======================
+// ДЕТАЛИ НЯНИ
+// ======================
 
-        const details = await detailsRes.json();
+async function showSitterDetails(id) {
+    try {
+        const dRes = await authFetch(`/api/admin/sitters/${id}`);
+        const details = await dRes.json();
+
+        const reviewsRes = await authFetch(`/api/sitters/${id}/reviews`);
         const reviews = await reviewsRes.json();
+
+        const servicesRes = await authFetch(`/api/sitters/${id}/services`);
         const services = await servicesRes.json();
 
         const content = document.getElementById('sitterDetailsContent');
+
         content.innerHTML = `
-            <div class="form-group">
-                <label>Имя:</label>
-                <p>${details.full_name}</p>
-            </div>
-            <div class="form-group">
-                <label>Email:</label>
-                <p>${details.email}</p>
-            </div>
-            <div class="form-group">
-                <label>Телефон:</label>
-                <p>${details.phone}</p>
-            </div>
-            <div class="form-group">
-                <label>Опыт работы:</label>
-                <p>${details.experience_years} лет</p>
-            </div>
-            <div class="form-group">
-                <label>Сертификаты:</label>
-                <p>${details.certificates || '-'}</p>
-            </div>
-            <div class="form-group">
-                <label>Предпочтения:</label>
-                <p>${details.preferences || '-'}</p>
-            </div>
-            <div class="form-group">
-                <label>Локация:</label>
-                <p>${details.location || '-'}</p>
-            </div>
-            <div class="form-group">
-                <label>Статус:</label>
-                <p><span class="badge badge-${details.status}">${details.status}</span></p>
-            </div>
-            <div class="form-group">
-                <label>Рейтинг:</label>
-                <p>${renderStars(details.rating)} (${details.rating.toFixed(1)}) - ${details.reviews} отзывов</p>
-            </div>
-            
-            <h3 style="margin-top: 30px;">Услуги (${services.length})</h3>
-            ${services.length > 0 ? `
-                <ul>
-                    ${services.map(s => `<li>${getServiceTypeName(s.type)} - ${s.price_per_hour} ₸/час</li>`).join('')}
-                </ul>
-            ` : '<p>Нет услуг</p>'}
-            
-            <h3 style="margin-top: 30px;">Отзывы (${reviews.length})</h3>
-            ${reviews.length > 0 ? reviews.slice(0, 3).map(r => `
-                <div style="margin-bottom: 15px; padding: 10px; background: #f5f5f5; border-radius: 8px;">
-                    <div class="rating">${renderStars(r.rating)}</div>
-                    <p style="margin-top: 5px;">${r.comment}</p>
-                </div>
-            `).join('') : '<p>Нет отзывов</p>'}
+            <p><strong>Имя:</strong> ${details.full_name}</p>
+            <p><strong>Email:</strong> ${details.email}</p>
+            <p><strong>Телефон:</strong> ${details.phone}</p>
+            <p><strong>Опыт:</strong> ${details.experience_years} лет</p>
+            <p><strong>Статус:</strong> ${details.status}</p>
+
+            <h3>Услуги</h3>
+            ${services.length
+            ? services.map(s => `<p>${getServiceTypeName(s.type)} — ${s.price_per_hour} ₸</p>`).join('')
+            : 'Нет услуг'}
+
+            <h3>Отзывы</h3>
+            ${reviews.length
+            ? reviews.slice(0, 3).map(r => `
+                    <div class="card" style="margin-bottom: 10px;">
+                        <div class="rating">${renderStars(r.rating)}</div>
+                        <p>${r.comment}</p>
+                    </div>
+                `).join('')
+            : 'Нет отзывов'}
         `;
 
         document.getElementById('sitterDetailsModal').classList.add('active');
+
     } catch (err) {
-        console.error('Ошибка загрузки деталей:', err);
-        alert('Ошибка загрузки деталей няни');
+        console.error('Ошибка загрузки деталей', err);
     }
 }
 
-// Одобрить няню
-async function approveSitter(sitterId) {
-    if (!confirm('Одобрить эту няню?')) return;
+// ======================
+// ДЕЙСТВИЯ
+// ======================
 
+async function approveSitter(id) {
+    if (!confirm('Одобрить няню?')) return;
     try {
-        const res = await fetch(`/api/admin/sitters/${sitterId}/approve`, { method: 'POST' });
-        if (res.ok) {
-            alert('✅ Няня одобрена!');
-            loadPendingSitters();
-            loadOverview();
-        } else {
-            const err = await res.json();
-            alert('❌ ' + err.error);
-        }
+        await authFetch(`/api/admin/sitters/${id}/approve`, { method: 'POST' });
+        loadPendingSitters();
+        loadOverview();
     } catch (err) {
-        alert('Ошибка одобрения');
+        console.error('Ошибка одобрения няни', err);
     }
 }
 
-// Отклонить няню
-async function rejectSitter(sitterId) {
-    if (!confirm('Отклонить эту няню?')) return;
-
+async function rejectSitter(id) {
+    if (!confirm('Отклонить няню?')) return;
     try {
-        const res = await fetch(`/api/admin/sitters/${sitterId}/reject`, { method: 'POST' });
-        if (res.ok) {
-            alert('✅ Няня отклонена');
-            loadPendingSitters();
-            loadOverview();
-        } else {
-            const err = await res.json();
-            alert('❌ ' + err.error);
-        }
+        await authFetch(`/api/admin/sitters/${id}/reject`, { method: 'POST' });
+        loadPendingSitters();
+        loadOverview();
     } catch (err) {
-        alert('Ошибка отклонения');
+        console.error('Ошибка отклонения няни', err);
     }
 }
 
-// Удалить пользователя
-async function deleteUser(userId, userName) {
-    if (!confirm(`Удалить пользователя "${userName}"?`)) return;
-
+async function deleteUser(id, name) {
+    if (!confirm(`Удалить пользователя ${name}?`)) return;
     try {
-        const res = await fetch(`/api/admin/users/${userId}`, { method: 'DELETE' });
-        if (res.ok) {
-            alert('✅ Пользователь удалён');
-            loadUsers();
-            loadOverview();
-        } else {
-            const err = await res.json();
-            alert('❌ ' + err.error);
-        }
+        await authFetch(`/api/admin/users/${id}`, { method: 'DELETE' });
+        loadUsers();
+        loadOverview();
     } catch (err) {
-        alert('Ошибка удаления');
+        console.error('Ошибка удаления пользователя', err);
     }
 }
 
-// Модальные окна
-function closeModal(modalId) {
-    document.getElementById(modalId).classList.remove('active');
-}
-
+// ======================
 // Вспомогательные функции
-function getServiceTypeName(type) {
-    const names = {
+// ======================
+
+function getServiceTypeName(t) {
+    return {
         walking: 'Выгул',
         boarding: 'Передержка',
         'home-care': 'Уход на дому'
-    };
-    return names[type] || type;
+    }[t] || t;
 }
 
-function renderStars(rating) {
-    const full = Math.floor(rating);
-    const empty = 5 - full;
-    return '⭐'.repeat(full) + '☆'.repeat(empty);
+function renderStars(r) {
+    const f = Math.floor(r);
+    return '⭐'.repeat(f) + '☆'.repeat(5 - f);
+}
+
+function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
 }
 
 function logout() {
+    localStorage.removeItem('auth');
     localStorage.removeItem('user');
     window.location.href = '/login';
 }
 
-// Загружаем обзор при старте
+// ======================
+// Старт
+// ======================
+
 loadOverview();

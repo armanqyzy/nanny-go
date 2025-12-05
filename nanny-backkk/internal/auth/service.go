@@ -2,27 +2,36 @@ package auth
 
 import (
 	"fmt"
+	"time"
 
-	"golang.org/x/crypto/bcrypt"
 	"nanny-backend/internal/common/models"
+	"nanny-backend/pkg/config"
+
+	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Service interface {
 	RegisterOwner(fullName, email, phone, password string) error
 	RegisterSitter(fullName, email, phone, password string, experienceYears int, certificates, preferences, location string) error
-	Login(email, password string) (*models.User, error)
+	Login(email, password string) (*models.User, string, error) // ← token added
 }
 
 type service struct {
-	repo Repository
+	repo      Repository
+	jwtSecret string
 }
 
 func NewService(repo Repository) Service {
-	return &service{repo: repo}
+	cfg := config.Load() // ← берём JWT_SECRET из config.go
+
+	return &service{
+		repo:      repo,
+		jwtSecret: cfg.JWTSecret,
+	}
 }
 
 func (s *service) RegisterOwner(fullName, email, phone, password string) error {
-	// Хешируем пароль
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return fmt.Errorf("ошибка хеширования пароля: %w", err)
@@ -45,7 +54,6 @@ func (s *service) RegisterOwner(fullName, email, phone, password string) error {
 }
 
 func (s *service) RegisterSitter(fullName, email, phone, password string, experienceYears int, certificates, preferences, location string) error {
-	// Хешируем пароль
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return fmt.Errorf("ошибка хеширования пароля: %w", err)
@@ -59,13 +67,11 @@ func (s *service) RegisterSitter(fullName, email, phone, password string, experi
 		Role:         "sitter",
 	}
 
-	// Создаём пользователя
 	userID, err := s.repo.CreateUser(user)
 	if err != nil {
 		return fmt.Errorf("ошибка создания пользователя: %w", err)
 	}
 
-	// Создаём профиль няни
 	sitter := &models.Sitter{
 		SitterID:        userID,
 		ExperienceYears: experienceYears,
@@ -83,17 +89,28 @@ func (s *service) RegisterSitter(fullName, email, phone, password string, experi
 	return nil
 }
 
-func (s *service) Login(email, password string) (*models.User, error) {
+func (s *service) Login(email, password string) (*models.User, string, error) {
 	user, err := s.repo.GetUserByEmail(email)
 	if err != nil {
-		return nil, fmt.Errorf("неверный email или пароль")
+		return nil, "", fmt.Errorf("неверный email или пароль")
 	}
 
-	// Проверяем пароль
 	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
 	if err != nil {
-		return nil, fmt.Errorf("неверный email или пароль")
+		return nil, "", fmt.Errorf("неверный email или пароль")
 	}
 
-	return user, nil
+	// --- Генерация JWT ---
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": user.UserID,
+		"role":    user.Role,
+		"exp":     time.Now().Add(time.Hour * 72).Unix(), // токен живёт 72 часа
+	})
+
+	signedToken, err := token.SignedString([]byte(s.jwtSecret))
+	if err != nil {
+		return nil, "", fmt.Errorf("ошибка генерации токена: %w", err)
+	}
+
+	return user, signedToken, nil
 }

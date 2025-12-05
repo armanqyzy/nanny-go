@@ -88,16 +88,21 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.service.Login(req.Email, req.Password)
+	// сервис теперь возвращает: user, token, err
+	user, token, err := h.service.Login(req.Email, req.Password)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
+	// Отправляем токен и данные пользователя
 	respondWithJSON(w, http.StatusOK, map[string]interface{}{
-		"message": "вход выполнен",
-		"role":    user.Role,
-		"user_id": user.UserID,
+		"message":   "вход выполнен",
+		"user_id":   user.UserID,
+		"role":      user.Role,
+		"email":     user.Email,
+		"full_name": user.FullName,
+		"token":     token,
 	})
 }
 

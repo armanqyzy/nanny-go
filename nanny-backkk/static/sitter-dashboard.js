@@ -1,12 +1,43 @@
-// Проверка авторизации
-const user = JSON.parse(localStorage.getItem('user'));
-if (!user || user.role !== 'sitter') {
+// ======================
+// JWT + Авторизация
+// ======================
+
+const authData = JSON.parse(localStorage.getItem('auth'));
+
+if (!authData || !authData.token || authData.user.role !== 'sitter') {
     window.location.href = '/login';
 }
 
+const token = authData.token;
+const user = authData.user;
+
 document.getElementById('userEmail').textContent = user.email;
 
+// Универсальная функция для API запросов с JWT
+async function authFetch(url, options = {}) {
+    const headers = options.headers || {};
+    headers['Authorization'] = `Bearer ${token}`;
+    headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+
+    const response = await fetch(url, {
+        ...options,
+        headers
+    });
+
+    // если токен просрочен → выходим
+    if (response.status === 401) {
+        alert("Сессия истекла. Войдите снова.");
+        logout();
+        return;
+    }
+
+    return response;
+}
+
+// ======================
 // Переключение табов
+// ======================
+
 document.querySelectorAll('.sidebar-menu a').forEach(link => {
     link.addEventListener('click', (e) => {
         e.preventDefault();
@@ -24,44 +55,33 @@ document.querySelectorAll('.sidebar-menu a').forEach(link => {
 
 function loadTabData(tab) {
     switch(tab) {
-        case 'overview':
-            loadOverview();
-            break;
-        case 'bookings':
-            loadBookings();
-            break;
-        case 'services':
-            loadServices();
-            break;
-        case 'reviews':
-            loadReviews();
-            break;
-        case 'profile':
-            loadProfile();
-            break;
+        case 'overview': loadOverview(); break;
+        case 'bookings': loadBookings(); break;
+        case 'services': loadServices(); break;
+        case 'reviews': loadReviews(); break;
+        case 'profile': loadProfile(); break;
     }
 }
 
-// Загрузка обзора
+// ======================
+// ОБЗОР
+// ======================
+
 async function loadOverview() {
     try {
-        // Загружаем услуги
-        const servicesRes = await fetch(`/api/sitters/${user.id}/services`);
+        const servicesRes = await authFetch(`/api/sitters/${user.id}/services`);
         const services = await servicesRes.json();
         document.getElementById('servicesCount').textContent = services.length || 0;
 
-        // Загружаем бронирования
-        const bookingsRes = await fetch(`/api/sitters/${user.id}/bookings`);
+        const bookingsRes = await authFetch(`/api/sitters/${user.id}/bookings`);
         const bookings = await bookingsRes.json();
         document.getElementById('bookingsCount').textContent = bookings.length || 0;
 
-        // Загружаем рейтинг
-        const ratingRes = await fetch(`/api/sitters/${user.id}/rating`);
+        const ratingRes = await authFetch(`/api/sitters/${user.id}/rating`);
         const rating = await ratingRes.json();
         document.getElementById('ratingValue').textContent = rating.average_rating.toFixed(1);
         document.getElementById('reviewsCount').textContent = rating.review_count;
 
-        // Активные заявки (pending)
         const pending = bookings.filter(b => b.status === 'pending');
         const activeDiv = document.getElementById('activeBookings');
 
@@ -97,20 +117,23 @@ async function loadOverview() {
             `;
         }
 
-        // Проверяем статус аккаунта
         checkAccountStatus();
     } catch (err) {
         console.error('Ошибка загрузки обзора:', err);
     }
 }
 
-// Проверка статуса аккаунта
+// ======================
+// Проверка статуса няни
+// ======================
+
 async function checkAccountStatus() {
     try {
-        const res = await fetch(`/api/admin/sitters/${user.id}`);
+        const res = await authFetch(`/api/admin/sitters/${user.id}`);
         const details = await res.json();
 
         const badge = document.getElementById('statusBadge');
+
         if (details.status === 'pending') {
             badge.innerHTML = '<span class="badge badge-pending">⏳ На модерации</span>';
         } else if (details.status === 'approved') {
@@ -118,113 +141,127 @@ async function checkAccountStatus() {
         } else if (details.status === 'rejected') {
             badge.innerHTML = '<span class="badge badge-rejected">❌ Отклонён</span>';
         }
+
     } catch (err) {
         console.error('Ошибка проверки статуса:', err);
     }
 }
 
-// Загрузка бронирований
+// ======================
+// БРОНИРОВАНИЯ
+// ======================
+
 async function loadBookings() {
     try {
-        const res = await fetch(`/api/sitters/${user.id}/bookings`);
+        const res = await authFetch(`/api/sitters/${user.id}/bookings`);
         const bookings = await res.json();
 
-        // Новые заявки
+        // Pending
         const pending = bookings.filter(b => b.status === 'pending');
         const pendingDiv = document.getElementById('pendingBookings');
 
-        if (pending.length === 0) {
-            pendingDiv.innerHTML = '<p class="empty-state">Нет новых заявок</p>';
-        } else {
-            pendingDiv.innerHTML = `
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Владелец</th>
-                            <th>Питомец</th>
-                            <th>Начало</th>
-                            <th>Конец</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${pending.map(b => `
-                            <tr>
-                                <td>#${b.booking_id}</td>
-                                <td>ID: ${b.owner_id}</td>
-                                <td>ID: ${b.pet_id}</td>
-                                <td>${new Date(b.start_time).toLocaleString('ru-RU')}</td>
-                                <td>${new Date(b.end_time).toLocaleString('ru-RU')}</td>
-                                <td>
-                                    <button class="btn btn-success" onclick="confirmBooking(${b.booking_id})">Принять</button>
-                                    <button class="btn btn-danger" onclick="rejectBooking(${b.booking_id})">Отклонить</button>
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-        }
+        pendingDiv.innerHTML = pending.length === 0
+            ? '<p class="empty-state">Нет новых заявок</p>'
+            : renderPendingBookings(pending);
 
-        // Вся история
+        // All
         const allDiv = document.getElementById('allBookings');
-        if (bookings.length === 0) {
-            allDiv.innerHTML = '<p class="empty-state">Нет бронирований</p>';
-        } else {
-            allDiv.innerHTML = `
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Владелец</th>
-                            <th>Питомец</th>
-                            <th>Дата</th>
-                            <th>Статус</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${bookings.map(b => `
-                            <tr>
-                                <td>#${b.booking_id}</td>
-                                <td>ID: ${b.owner_id}</td>
-                                <td>ID: ${b.pet_id}</td>
-                                <td>${new Date(b.start_time).toLocaleString('ru-RU')}</td>
-                                <td><span class="badge badge-${b.status}">${b.status}</span></td>
-                                <td>
-                                    ${b.status === 'confirmed' ? `<button class="btn btn-success btn-sm" onclick="completeBooking(${b.booking_id})">Завершить</button>` : '-'}
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-        }
+        allDiv.innerHTML = bookings.length === 0
+            ? '<p class="empty-state">Нет бронирований</p>'
+            : renderAllBookings(bookings);
+
     } catch (err) {
         console.error('Ошибка загрузки бронирований:', err);
     }
 }
 
-// Загрузка услуг
+function renderPendingBookings(list) {
+    return `
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Владелец</th>
+                    <th>Питомец</th>
+                    <th>Начало</th>
+                    <th>Конец</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${list.map(b => `
+                    <tr>
+                        <td>#${b.booking_id}</td>
+                        <td>ID: ${b.owner_id}</td>
+                        <td>ID: ${b.pet_id}</td>
+                        <td>${new Date(b.start_time).toLocaleString('ru-RU')}</td>
+                        <td>${new Date(b.end_time).toLocaleString('ru-RU')}</td>
+                        <td>
+                            <button class="btn btn-success" onclick="confirmBooking(${b.booking_id})">Принять</button>
+                            <button class="btn btn-danger" onclick="rejectBooking(${b.booking_id})">Отклонить</button>
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+function renderAllBookings(list) {
+    return `
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Владелец</th>
+                    <th>Питомец</th>
+                    <th>Дата</th>
+                    <th>Статус</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${list.map(b => `
+                    <tr>
+                        <td>#${b.booking_id}</td>
+                        <td>ID: ${b.owner_id}</td>
+                        <td>ID: ${b.pet_id}</td>
+                        <td>${new Date(b.start_time).toLocaleString('ru-RU')}</td>
+                        <td><span class="badge badge-${b.status}">${b.status}</span></td>
+                        <td>
+                            ${b.status === 'confirmed'
+        ? `<button class="btn btn-success btn-sm" onclick="completeBooking(${b.booking_id})">Завершить</button>`
+        : '-'}
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+// ======================
+// Услуги
+// ======================
+
 async function loadServices() {
     try {
-        const res = await fetch(`/api/sitters/${user.id}/services`);
+        const res = await authFetch(`/api/sitters/${user.id}/services`);
         const services = await res.json();
 
-        const servicesDiv = document.getElementById('servicesList');
+        const div = document.getElementById('servicesList');
 
         if (services.length === 0) {
-            servicesDiv.innerHTML = '<div class="empty-state"><h3>У вас пока нет услуг</h3><p>Добавьте первую услугу!</p></div>';
+            div.innerHTML = '<div class="empty-state"><h3>У вас пока нет услуг</h3></div>';
             return;
         }
 
-        servicesDiv.innerHTML = `
+        div.innerHTML = `
             <table>
                 <thead>
                     <tr>
                         <th>Тип</th>
-                        <th>Цена (₸/час)</th>
+                        <th>Цена</th>
                         <th>Описание</th>
                         <th>Действия</th>
                     </tr>
@@ -232,7 +269,7 @@ async function loadServices() {
                 <tbody>
                     ${services.map(s => `
                         <tr>
-                            <td><strong>${getServiceTypeName(s.type)}</strong></td>
+                            <td>${getServiceTypeName(s.type)}</td>
                             <td>${s.price_per_hour} ₸</td>
                             <td>${s.description || '-'}</td>
                             <td>
@@ -248,12 +285,44 @@ async function loadServices() {
     }
 }
 
-// Загрузка отзывов
+// Добавление услуги
+document.getElementById('addServiceForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const data = Object.fromEntries(new FormData(e.target));
+    data.sitter_id = user.id;
+    data.price_per_hour = Number(data.price_per_hour);
+
+    try {
+        const res = await authFetch('/api/services', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+
+        if (res.ok) {
+            alert('Услуга добавлена!');
+            closeModal('addServiceModal');
+            e.target.reset();
+            loadServices();
+            loadOverview();
+        } else {
+            const err = await res.json();
+            alert('Ошибка: ' + err.error);
+        }
+    } catch {
+        alert('Ошибка соединения');
+    }
+});
+
+// ======================
+// Отзывы
+// ======================
+
 async function loadReviews() {
     try {
         const [reviewsRes, ratingRes] = await Promise.all([
-            fetch(`/api/sitters/${user.id}/reviews`),
-            fetch(`/api/sitters/${user.id}/rating`)
+            authFetch(`/api/sitters/${user.id}/reviews`),
+            authFetch(`/api/sitters/${user.id}/rating`)
         ]);
 
         const reviews = await reviewsRes.json();
@@ -262,193 +331,109 @@ async function loadReviews() {
         document.getElementById('avgRating').textContent = rating.average_rating.toFixed(1);
         document.getElementById('totalReviews').textContent = rating.review_count;
 
-        const reviewsDiv = document.getElementById('reviewsList');
+        const div = document.getElementById('reviewsList');
 
         if (reviews.length === 0) {
-            reviewsDiv.innerHTML = '<p class="empty-state">Пока нет отзывов</p>';
+            div.innerHTML = '<p class="empty-state">Нет отзывов</p>';
             return;
         }
 
-        reviewsDiv.innerHTML = reviews.map(r => `
-            <div class="card" style="margin-bottom: 15px;">
+        div.innerHTML = reviews.map(r => `
+            <div class="card">
                 <div class="rating">${renderStars(r.rating)}</div>
-                <p style="margin-top: 10px;"><strong>Владелец #${r.owner_id}</strong></p>
+                <p><strong>Владелец #${r.owner_id}</strong></p>
                 <p>${r.comment}</p>
-                <p style="color: #999; font-size: 12px;">${new Date(r.created_at).toLocaleDateString('ru-RU')}</p>
+                <p class="date">${new Date(r.created_at).toLocaleDateString('ru-RU')}</p>
             </div>
         `).join('');
+
     } catch (err) {
         console.error('Ошибка загрузки отзывов:', err);
     }
 }
 
-// Загрузка профиля
+// ======================
+// Профиль няни
+// ======================
+
 async function loadProfile() {
     try {
-        const res = await fetch(`/api/admin/sitters/${user.id}`);
-        const details = await res.json();
+        const res = await authFetch(`/api/admin/sitters/${user.id}`);
+        const d = await res.json();
 
         document.getElementById('profileInfo').innerHTML = `
-            <div class="form-group">
-                <label>Имя:</label>
-                <p>${details.full_name}</p>
-            </div>
-            <div class="form-group">
-                <label>Email:</label>
-                <p>${details.email}</p>
-            </div>
-            <div class="form-group">
-                <label>Телефон:</label>
-                <p>${details.phone}</p>
-            </div>
-            <div class="form-group">
-                <label>Опыт работы:</label>
-                <p>${details.experience_years} лет</p>
-            </div>
-            <div class="form-group">
-                <label>Сертификаты:</label>
-                <p>${details.certificates || '-'}</p>
-            </div>
-            <div class="form-group">
-                <label>Предпочтения:</label>
-                <p>${details.preferences || '-'}</p>
-            </div>
-            <div class="form-group">
-                <label>Локация:</label>
-                <p>${details.location || '-'}</p>
-            </div>
-            <div class="form-group">
-                <label>Статус:</label>
-                <p><span class="badge badge-${details.status}">${details.status}</span></p>
-            </div>
-            <div class="form-group">
-                <label>Рейтинг:</label>
-                <p>${renderStars(details.rating)} (${details.rating.toFixed(1)})</p>
-            </div>
+            <p><strong>Имя:</strong> ${d.full_name}</p>
+            <p><strong>Email:</strong> ${d.email}</p>
+            <p><strong>Телефон:</strong> ${d.phone}</p>
+            <p><strong>Опыт:</strong> ${d.experience_years} лет</p>
+            <p><strong>Сертификаты:</strong> ${d.certificates || '-'}</p>
+            <p><strong>Предпочтения:</strong> ${d.preferences || '-'}</p>
+            <p><strong>Локация:</strong> ${d.location || '-'}</p>
+            <p><strong>Статус:</strong> <span class="badge badge-${d.status}">${d.status}</span></p>
         `;
     } catch (err) {
         console.error('Ошибка загрузки профиля:', err);
     }
 }
 
-// Модальные окна
-function showAddServiceModal() {
-    document.getElementById('addServiceModal').classList.add('active');
+// ======================
+// Действия бронирований
+// ======================
+
+async function confirmBooking(id) {
+    await authFetch(`/api/bookings/${id}/confirm`, { method: 'POST' });
+    loadBookings();
+    loadOverview();
 }
 
-function closeModal(modalId) {
-    document.getElementById(modalId).classList.remove('active');
+async function rejectBooking(id) {
+    if (!confirm('Отклонить?')) return;
+    await authFetch(`/api/bookings/${id}/cancel`, { method: 'POST' });
+    loadBookings();
+    loadOverview();
 }
 
-// Обработчик формы добавления услуги
-document.getElementById('addServiceForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const data = Object.fromEntries(formData);
-    data.sitter_id = user.id;
-    data.price_per_hour = parseFloat(data.price_per_hour);
-
-    try {
-        const res = await fetch('/api/services', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(data)
-        });
-
-        if (res.ok) {
-            alert('✅ Услуга добавлена!');
-            closeModal('addServiceModal');
-            e.target.reset();
-            loadServices();
-            loadOverview();
-        } else {
-            const err = await res.json();
-            alert('❌ ' + err.error);
-        }
-    } catch (err) {
-        alert('Ошибка соединения');
-    }
-});
-
-// Действия с бронированиями
-async function confirmBooking(bookingId) {
-    try {
-        const res = await fetch(`/api/bookings/${bookingId}/confirm`, { method: 'POST' });
-        if (res.ok) {
-            alert('✅ Бронирование подтверждено');
-            loadBookings();
-            loadOverview();
-        }
-    } catch (err) {
-        alert('Ошибка подтверждения');
-    }
+async function completeBooking(id) {
+    if (!confirm('Завершить?')) return;
+    await authFetch(`/api/bookings/${id}/complete`, { method: 'POST' });
+    loadBookings();
 }
 
-async function rejectBooking(bookingId) {
-    if (!confirm('Отклонить заявку?')) return;
-
-    try {
-        const res = await fetch(`/api/bookings/${bookingId}/cancel`, { method: 'POST' });
-        if (res.ok) {
-            alert('✅ Заявка отклонена');
-            loadBookings();
-            loadOverview();
-        }
-    } catch (err) {
-        alert('Ошибка отклонения');
-    }
-}
-
-async function completeBooking(bookingId) {
-    if (!confirm('Завершить бронирование?')) return;
-
-    try {
-        const res = await fetch(`/api/bookings/${bookingId}/complete`, { method: 'POST' });
-        if (res.ok) {
-            alert('✅ Бронирование завершено');
-            loadBookings();
-        }
-    } catch (err) {
-        alert('Ошибка завершения');
-    }
-}
-
+// ======================
 // Удалить услугу
-async function deleteService(serviceId) {
-    if (!confirm('Удалить услугу?')) return;
+// ======================
 
-    try {
-        const res = await fetch(`/api/services/${serviceId}`, { method: 'DELETE' });
-        if (res.ok) {
-            alert('✅ Услуга удалена');
-            loadServices();
-            loadOverview();
-        }
-    } catch (err) {
-        alert('Ошибка удаления');
-    }
+async function deleteService(id) {
+    if (!confirm('Удалить услугу?')) return;
+    await authFetch(`/api/services/${id}`, { method: 'DELETE' });
+    loadServices();
+    loadOverview();
 }
 
-// Вспомогательные функции
+// ======================
+// Utils
+// ======================
+
 function getServiceTypeName(type) {
-    const names = {
+    return {
         walking: 'Выгул',
         boarding: 'Передержка',
         'home-care': 'Уход на дому'
-    };
-    return names[type] || type;
+    }[type] || type;
 }
 
-function renderStars(rating) {
-    const full = Math.floor(rating);
-    const empty = 5 - full;
-    return '⭐'.repeat(full) + '☆'.repeat(empty);
+function renderStars(r) {
+    return '⭐'.repeat(Math.floor(r)) + '☆'.repeat(5 - Math.floor(r));
 }
+
+// ======================
+// Logout
+// ======================
 
 function logout() {
-    localStorage.removeItem('user');
+    localStorage.removeItem('auth');
     window.location.href = '/login';
 }
 
-// Загружаем обзор при старте
+// Загружаем dashboard
 loadOverview();

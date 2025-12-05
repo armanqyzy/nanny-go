@@ -19,23 +19,19 @@ import (
 )
 
 func main() {
-	// Загружаем конфигурацию
 	cfg := config.Load()
 
-	// Подключаемся к БД
 	db, err := database.New(cfg.Database.ConnectionString())
 	if err != nil {
 		log.Fatal("❌ Ошибка подключения к БД:", err)
 	}
 	defer db.Close()
 
-	// Инициализируем роутер
 	r := mux.NewRouter()
 
-	// Применяем middleware
 	r.Use(middleware.CORS)
 
-	// HTML страницы (ПЕРВЫМИ!)
+	// ---------- HTML-страницы ----------
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./static/login.html")
 	}).Methods("GET")
@@ -60,12 +56,11 @@ func main() {
 		http.ServeFile(w, r, "./static/admin-dashboard.html")
 	}).Methods("GET")
 
-	// Статические файлы (CSS, JS)
 	staticDir := http.Dir("./static")
 	staticHandler := http.FileServer(staticDir)
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", staticHandler))
 
-	// Инициализируем модули
+	// ---------- Модули API ----------
 	setupAuthModule(r, db)
 	setupPetsModule(r, db)
 	setupBookingsModule(r, db)
@@ -73,7 +68,6 @@ func main() {
 	setupServicesModule(r, db)
 	setupAdminModule(r, db)
 
-	// Обратная совместимость со старыми URL
 	authRepo := auth.NewRepository(db.DB)
 	authService := auth.NewService(authRepo)
 	authHandler := auth.NewHandler(authService)
@@ -81,7 +75,6 @@ func main() {
 	r.HandleFunc("/register/sitter", authHandler.RegisterSitter).Methods("POST")
 	r.HandleFunc("/login", authHandler.Login).Methods("POST")
 
-	// Запускаем сервер
 	addr := fmt.Sprintf(":%s", cfg.Server.Port)
 	fmt.Printf("✅ Server running on http://localhost%s\n", addr)
 	log.Fatal(http.ListenAndServe(addr, r))
@@ -102,10 +95,19 @@ func setupPetsModule(r *mux.Router, db *database.Database) {
 	service := pets.NewService(repo)
 	handler := pets.NewHandler(service)
 
-	r.HandleFunc("/api/pets", handler.CreatePet).Methods("POST")
+	r.Handle("/api/pets",
+		middleware.AuthMiddleware(http.HandlerFunc(handler.CreatePet)),
+	).Methods("POST")
+
+	r.Handle("/api/pets/{id:[0-9]+}",
+		middleware.AuthMiddleware(http.HandlerFunc(handler.UpdatePet)),
+	).Methods("PUT")
+
+	r.Handle("/api/pets/{id:[0-9]+}",
+		middleware.AuthMiddleware(http.HandlerFunc(handler.DeletePet)),
+	).Methods("DELETE")
+
 	r.HandleFunc("/api/pets/{id:[0-9]+}", handler.GetPet).Methods("GET")
-	r.HandleFunc("/api/pets/{id:[0-9]+}", handler.UpdatePet).Methods("PUT")
-	r.HandleFunc("/api/pets/{id:[0-9]+}", handler.DeletePet).Methods("DELETE")
 	r.HandleFunc("/api/owners/{owner_id:[0-9]+}/pets", handler.GetOwnerPets).Methods("GET")
 }
 
@@ -114,13 +116,25 @@ func setupBookingsModule(r *mux.Router, db *database.Database) {
 	service := bookings.NewService(repo)
 	handler := bookings.NewHandler(service)
 
-	r.HandleFunc("/api/bookings", handler.CreateBooking).Methods("POST")
+	r.Handle("/api/bookings",
+		middleware.AuthMiddleware(http.HandlerFunc(handler.CreateBooking)),
+	).Methods("POST")
+
+	r.Handle("/api/bookings/{id:[0-9]+}/confirm",
+		middleware.AuthMiddleware(http.HandlerFunc(handler.ConfirmBooking)),
+	).Methods("POST")
+
+	r.Handle("/api/bookings/{id:[0-9]+}/cancel",
+		middleware.AuthMiddleware(http.HandlerFunc(handler.CancelBooking)),
+	).Methods("POST")
+
+	r.Handle("/api/bookings/{id:[0-9]+}/complete",
+		middleware.AuthMiddleware(http.HandlerFunc(handler.CompleteBooking)),
+	).Methods("POST")
+
 	r.HandleFunc("/api/bookings/{id:[0-9]+}", handler.GetBooking).Methods("GET")
 	r.HandleFunc("/api/owners/{owner_id:[0-9]+}/bookings", handler.GetOwnerBookings).Methods("GET")
 	r.HandleFunc("/api/sitters/{sitter_id:[0-9]+}/bookings", handler.GetSitterBookings).Methods("GET")
-	r.HandleFunc("/api/bookings/{id:[0-9]+}/confirm", handler.ConfirmBooking).Methods("POST")
-	r.HandleFunc("/api/bookings/{id:[0-9]+}/cancel", handler.CancelBooking).Methods("POST")
-	r.HandleFunc("/api/bookings/{id:[0-9]+}/complete", handler.CompleteBooking).Methods("POST")
 }
 
 func setupReviewsModule(r *mux.Router, db *database.Database) {
@@ -128,10 +142,19 @@ func setupReviewsModule(r *mux.Router, db *database.Database) {
 	service := reviews.NewService(repo)
 	handler := reviews.NewHandler(service)
 
-	r.HandleFunc("/api/reviews", handler.CreateReview).Methods("POST")
+	r.Handle("/api/reviews",
+		middleware.AuthMiddleware(http.HandlerFunc(handler.CreateReview)),
+	).Methods("POST")
+
+	r.Handle("/api/reviews/{id:[0-9]+}",
+		middleware.AuthMiddleware(http.HandlerFunc(handler.UpdateReview)),
+	).Methods("PUT")
+
+	r.Handle("/api/reviews/{id:[0-9]+}",
+		middleware.AuthMiddleware(http.HandlerFunc(handler.DeleteReview)),
+	).Methods("DELETE")
+
 	r.HandleFunc("/api/reviews/{id:[0-9]+}", handler.GetReview).Methods("GET")
-	r.HandleFunc("/api/reviews/{id:[0-9]+}", handler.UpdateReview).Methods("PUT")
-	r.HandleFunc("/api/reviews/{id:[0-9]+}", handler.DeleteReview).Methods("DELETE")
 	r.HandleFunc("/api/sitters/{sitter_id:[0-9]+}/reviews", handler.GetSitterReviews).Methods("GET")
 	r.HandleFunc("/api/sitters/{sitter_id:[0-9]+}/rating", handler.GetSitterRating).Methods("GET")
 	r.HandleFunc("/api/bookings/{booking_id:[0-9]+}/review", handler.GetBookingReview).Methods("GET")
@@ -142,12 +165,21 @@ func setupServicesModule(r *mux.Router, db *database.Database) {
 	service := services.NewService(repo)
 	handler := services.NewHandler(service)
 
-	r.HandleFunc("/api/services", handler.CreateService).Methods("POST")
-	r.HandleFunc("/api/services/{id:[0-9]+}", handler.GetService).Methods("GET")
-	r.HandleFunc("/api/services/{id:[0-9]+}", handler.UpdateService).Methods("PUT")
-	r.HandleFunc("/api/services/{id:[0-9]+}", handler.DeleteService).Methods("DELETE")
-	r.HandleFunc("/api/sitters/{sitter_id:[0-9]+}/services", handler.GetSitterServices).Methods("GET")
 	r.HandleFunc("/api/services/search", handler.SearchServices).Methods("GET")
+	r.HandleFunc("/api/sitters/{sitter_id:[0-9]+}/services", handler.GetSitterServices).Methods("GET")
+	r.HandleFunc("/api/services/{id:[0-9]+}", handler.GetService).Methods("GET")
+
+	r.Handle("/api/services",
+		middleware.AuthMiddleware(http.HandlerFunc(handler.CreateService)),
+	).Methods("POST")
+
+	r.Handle("/api/services/{id:[0-9]+}",
+		middleware.AuthMiddleware(http.HandlerFunc(handler.UpdateService)),
+	).Methods("PUT")
+
+	r.Handle("/api/services/{id:[0-9]+}",
+		middleware.AuthMiddleware(http.HandlerFunc(handler.DeleteService)),
+	).Methods("DELETE")
 }
 
 func setupAdminModule(r *mux.Router, db *database.Database) {
@@ -155,11 +187,31 @@ func setupAdminModule(r *mux.Router, db *database.Database) {
 	service := admin.NewService(repo)
 	handler := admin.NewHandler(service)
 
-	r.HandleFunc("/api/admin/sitters/pending", handler.GetPendingSitters).Methods("GET")
-	r.HandleFunc("/api/admin/sitters/{sitter_id:[0-9]+}/approve", handler.ApproveSitter).Methods("POST")
-	r.HandleFunc("/api/admin/sitters/{sitter_id:[0-9]+}/reject", handler.RejectSitter).Methods("POST")
-	r.HandleFunc("/api/admin/sitters/{sitter_id:[0-9]+}", handler.GetSitterDetails).Methods("GET")
-	r.HandleFunc("/api/admin/users", handler.GetAllUsers).Methods("GET")
-	r.HandleFunc("/api/admin/users/{user_id:[0-9]+}", handler.GetUser).Methods("GET")
-	r.HandleFunc("/api/admin/users/{user_id:[0-9]+}", handler.DeleteUser).Methods("DELETE")
+	r.Handle("/api/admin/sitters/pending",
+		middleware.AuthMiddleware(http.HandlerFunc(handler.GetPendingSitters)),
+	).Methods("GET")
+
+	r.Handle("/api/admin/sitters/{sitter_id:[0-9]+}/approve",
+		middleware.AuthMiddleware(http.HandlerFunc(handler.ApproveSitter)),
+	).Methods("POST")
+
+	r.Handle("/api/admin/sitters/{sitter_id:[0-9]+}/reject",
+		middleware.AuthMiddleware(http.HandlerFunc(handler.RejectSitter)),
+	).Methods("POST")
+
+	r.Handle("/api/admin/sitters/{sitter_id:[0-9]+}",
+		middleware.AuthMiddleware(http.HandlerFunc(handler.GetSitterDetails)),
+	).Methods("GET")
+
+	r.Handle("/api/admin/users",
+		middleware.AuthMiddleware(http.HandlerFunc(handler.GetAllUsers)),
+	).Methods("GET")
+
+	r.Handle("/api/admin/users/{user_id:[0-9]+}",
+		middleware.AuthMiddleware(http.HandlerFunc(handler.GetUser)),
+	).Methods("GET")
+
+	r.Handle("/api/admin/users/{user_id:[0-9]+}",
+		middleware.AuthMiddleware(http.HandlerFunc(handler.DeleteUser)),
+	).Methods("DELETE")
 }

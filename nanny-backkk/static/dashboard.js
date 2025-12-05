@@ -1,9 +1,47 @@
-// Проверка авторизации
-const user = JSON.parse(localStorage.getItem('user'));
-if (!user || user.role !== 'owner') {
+// ======================
+// JWT + авторизация
+// ======================
+
+// Пытаемся взять новый формат auth (token + user)
+let authData = JSON.parse(localStorage.getItem('auth') || 'null');
+
+// Fallback: если вдруг остался старый формат
+if (!authData && localStorage.getItem('token') && localStorage.getItem('user')) {
+    authData = {
+        token: localStorage.getItem('token'),
+        user: JSON.parse(localStorage.getItem('user'))
+    };
+}
+
+if (!authData || !authData.token || !authData.user || authData.user.role !== 'owner') {
+    // нет токена или не owner → на логин
     window.location.href = '/login';
 }
 
+const token = authData.token;
+const user = authData.user;
+
+// Универсальный fetch с JWT
+async function authFetch(url, options = {}) {
+    const headers = options.headers || {};
+    headers['Authorization'] = `Bearer ${token}`;
+    // Content-Type ставим только если его еще нет и есть body
+    if (!headers['Content-Type'] && options.body && !(options.body instanceof FormData)) {
+        headers['Content-Type'] = 'application/json';
+    }
+
+    const res = await fetch(url, { ...options, headers });
+
+    if (res.status === 401) {
+        alert('Сессия истекла. Войдите снова.');
+        logout();
+        return;
+    }
+
+    return res;
+}
+
+// Показываем email
 document.getElementById('userEmail').textContent = user.email;
 
 // Переключение табов
@@ -12,17 +50,12 @@ document.querySelectorAll('.sidebar-menu a').forEach(link => {
         e.preventDefault();
         const tab = e.target.dataset.tab;
 
-        // Убираем active класс со всех ссылок
         document.querySelectorAll('.sidebar-menu a').forEach(l => l.classList.remove('active'));
         e.target.classList.add('active');
 
-        // Скрываем все табы
         document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
-
-        // Показываем нужный таб
         document.getElementById(tab + '-tab').style.display = 'block';
 
-        // Загружаем данные
         loadTabData(tab);
     });
 });
@@ -45,24 +78,27 @@ function loadTabData(tab) {
     }
 }
 
-// Загрузка обзора
+// ======================
+// ОБЗОР
+// ======================
+
 async function loadOverview() {
     try {
-        // Загружаем количество питомцев
-        const petsRes = await fetch(`/api/owners/${user.id}/pets`);
+        // питомцы
+        const petsRes = await authFetch(`/api/owners/${user.id}/pets`);
+        if (!petsRes) return;
         const pets = await petsRes.json();
         document.getElementById('petsCount').textContent = pets.length || 0;
 
-        // Загружаем бронирования
-        const bookingsRes = await fetch(`/api/owners/${user.id}/bookings`);
-        let bookings = await bookingsRes.json();
-        if (!Array.isArray(bookings)) {
-            bookings = [];
-        }
+        // бронирования
+        const bookingsRes = await authFetch(`/api/owners/${user.id}/bookings`);
+        if (!bookingsRes) return;
+        const bookings = await bookingsRes.json();
         document.getElementById('bookingsCount').textContent = bookings.length || 0;
 
+        // последние 5 бронирований
         const recentDiv = document.getElementById('recentBookings');
-        if (bookings.length === 0) {
+        if (!bookings.length) {
             recentDiv.innerHTML = '<p class="empty-state">Пока нет бронирований</p>';
         } else {
             const recent = bookings.slice(0, 5);
@@ -94,14 +130,20 @@ async function loadOverview() {
     }
 }
 
+// ======================
+// ПИТОМЦЫ
+// ======================
+
 async function loadPets() {
+    const petsDiv = document.getElementById('petsList');
+
     try {
-        const res = await fetch(`/api/owners/${user.id}/pets`);
+        const res = await authFetch(`/api/owners/${user.id}/pets`);
+        if (!res) return;
+
         const pets = await res.json();
 
-        const petsDiv = document.getElementById('petsList');
-
-        if (pets.length === 0) {
+        if (!Array.isArray(pets) || pets.length === 0) {
             petsDiv.innerHTML = '<div class="empty-state"><h3>У вас пока нет питомцев</h3><p>Добавьте первого питомца!</p></div>';
             return;
         }
@@ -134,19 +176,23 @@ async function loadPets() {
         `;
     } catch (err) {
         console.error('Ошибка загрузки питомцев:', err);
+        petsDiv.innerHTML = '<div class="empty-state"><h3>Ошибка загрузки питомцев</h3></div>';
     }
 }
 
+// ======================
+// БРОНИРОВАНИЯ
+// ======================
 
-// Загрузка бронирований
 async function loadBookings() {
     try {
-        const res = await fetch(`/api/owners/${user.id}/bookings`);
+        const res = await authFetch(`/api/owners/${user.id}/bookings`);
+        if (!res) return;
         const bookings = await res.json();
 
         const bookingsDiv = document.getElementById('bookingsList');
 
-        if (bookings.length === 0) {
+        if (!bookings.length) {
             bookingsDiv.innerHTML = '<div class="empty-state"><h3>У вас пока нет бронирований</h3></div>';
             return;
         }
@@ -185,22 +231,37 @@ async function loadBookings() {
     }
 }
 
+// ======================
 // Поиск услуг
+// (можно оставить обычный fetch, но можно и через authFetch – не повредит)
+// ======================
+
 async function searchServices() {
-    const type = document.getElementById('serviceTypeFilter').value;
-    const location = document.getElementById('locationFilter').value;
+    // Поддерживаем и старые id, и новые
+    const typeEl =
+        document.getElementById('serviceTypeFilter') ||
+        document.getElementById('serviceType');
+
+    const locationEl =
+        document.getElementById('locationFilter') ||
+        document.getElementById('location');
+
+    const type = typeEl ? typeEl.value : '';
+    const location = locationEl ? locationEl.value.trim() : '';
 
     try {
         const params = new URLSearchParams();
-        if (type) params.append('type', type);
+        if (type && type !== 'all') params.append('type', type);
         if (location) params.append('location', location);
 
-        const res = await fetch(`/api/services/search?${params}`);
+        const res = await fetch(`/api/services/search?${params.toString()}`);
         const services = await res.json();
+
+        console.log('services search result:', services); // для проверки
 
         const resultsDiv = document.getElementById('searchResults');
 
-        if (services.length === 0) {
+        if (!Array.isArray(services) || services.length === 0) {
             resultsDiv.innerHTML = '<p class="empty-state">Услуги не найдены</p>';
             return;
         }
@@ -209,33 +270,40 @@ async function searchServices() {
             <div class="card" style="margin-bottom: 15px;">
                 <h3>${s.sitter_name}</h3>
                 <div class="rating">
-                    ${renderStars(s.sitter_rating)}
-                    <span>(${s.sitter_rating.toFixed(1)})</span>
+                    ${renderStars(s.sitter_rating || 0)}
+                    <span>(${(s.sitter_rating || 0).toFixed(1)})</span>
                 </div>
                 <p><strong>Услуга:</strong> ${getServiceTypeName(s.type)}</p>
                 <p><strong>Цена:</strong> ${s.price_per_hour} ₸/час</p>
                 <p>${s.description || ''}</p>
-                <button class="btn btn-primary" onclick="bookService(${s.sitter_id}, ${s.service_id})">Забронировать</button>
+                <button class="btn btn-primary"
+                        onclick="bookService(${s.sitter_id}, ${s.service_id})">
+                    Забронировать
+                </button>
             </div>
         `).join('');
     } catch (err) {
-        console.error('Ошибка поиска:', err);
+        console.error('Ошибка поиска услуг:', err);
+        document.getElementById('searchResults').innerHTML =
+            '<p class="empty-state">Ошибка поиска услуг</p>';
     }
 }
 
-// Загрузка отзывов
+
+// Заглушка для отзывов
 async function loadReviews() {
-    // TODO: Реализовать загрузку отзывов владельца
     document.getElementById('reviewsList').innerHTML = '<p>Функция в разработке</p>';
 }
 
+// ======================
 // Модальные окна
+// ======================
+
 function showAddPetModal() {
     document.getElementById('addPetModal').classList.add('active');
 }
 
 function showCreateBookingModal() {
-    // Загружаем список питомцев
     loadPetsForBooking();
     document.getElementById('createBookingModal').classList.add('active');
 }
@@ -246,7 +314,8 @@ function closeModal(modalId) {
 
 async function loadPetsForBooking() {
     try {
-        const res = await fetch(`/api/owners/${user.id}/pets`);
+        const res = await authFetch(`/api/owners/${user.id}/pets`);
+        if (!res) return;
         const pets = await res.json();
 
         const select = document.getElementById('bookingPetSelect');
@@ -258,7 +327,9 @@ async function loadPetsForBooking() {
     }
 }
 
-// Обработчики форм
+// ======================
+// Формы
+// ======================
 
 document.getElementById('addPetForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -271,18 +342,18 @@ document.getElementById('addPetForm').addEventListener('submit', async (e) => {
     data.owner_id = Number(user.id);
 
     try {
-        const res = await fetch('/api/pets', {
+        const res = await authFetch('/api/pets', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(data)
         });
 
-        if (res.ok) {
+        if (res && res.ok) {
             alert('✅ Питомец добавлен!');
             closeModal('addPetModal');
             e.target.reset();
             loadPets();
-        } else {
+            loadOverview();
+        } else if (res) {
             const err = await res.json();
             alert('❌ ' + err.error);
         }
@@ -295,30 +366,24 @@ document.getElementById('createBookingForm').addEventListener('submit', async (e
     e.preventDefault();
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData);
+    data.owner_id = user.id;
 
-    // 🔹 Преобразуем ID в числа
-    data.owner_id  = Number(user.id);
-    data.pet_id    = Number(data.pet_id);
-    data.sitter_id = Number(data.sitter_id);
-    data.service_id = Number(data.service_id);
-
-    // 🔹 Конвертируем время в ISO формат
     data.start_time = new Date(data.start_time).toISOString();
-    data.end_time   = new Date(data.end_time).toISOString();
+    data.end_time = new Date(data.end_time).toISOString();
 
     try {
-        const res = await fetch('/api/bookings', {
+        const res = await authFetch('/api/bookings', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(data)
         });
 
-        if (res.ok) {
+        if (res && res.ok) {
             alert('✅ Бронирование создано!');
             closeModal('createBookingModal');
             e.target.reset();
             loadBookings();
-        } else {
+            loadOverview();
+        } else if (res) {
             const err = await res.json();
             alert('❌ ' + err.error);
         }
@@ -327,38 +392,44 @@ document.getElementById('createBookingForm').addEventListener('submit', async (e
     }
 });
 
+// ======================
+// Действия
+// ======================
 
-// Удалить питомца
 async function deletePet(petId) {
     if (!confirm('Удалить питомца?')) return;
 
     try {
-        const res = await fetch(`/api/pets/${petId}`, { method: 'DELETE' });
-        if (res.ok) {
+        const res = await authFetch(`/api/pets/${petId}`, { method: 'DELETE' });
+        if (res && res.ok) {
             alert('✅ Питомец удалён');
             loadPets();
+            loadOverview();
         }
     } catch (err) {
         alert('Ошибка удаления');
     }
 }
 
-// Отменить бронирование
 async function cancelBooking(bookingId) {
     if (!confirm('Отменить бронирование?')) return;
 
     try {
-        const res = await fetch(`/api/bookings/${bookingId}/cancel`, { method: 'POST' });
-        if (res.ok) {
+        const res = await authFetch(`/api/bookings/${bookingId}/cancel`, { method: 'POST' });
+        if (res && res.ok) {
             alert('✅ Бронирование отменено');
             loadBookings();
+            loadOverview();
         }
     } catch (err) {
         alert('Ошибка отмены');
     }
 }
 
+// ======================
 // Вспомогательные функции
+// ======================
+
 function getPetTypeIcon(type) {
     const icons = { cat: '🐱', dog: '🐕', rodent: '🐹' };
     return icons[type] || '🐾';
@@ -386,9 +457,12 @@ function renderStars(rating) {
 }
 
 function logout() {
+    localStorage.removeItem('auth');
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
     window.location.href = '/login';
 }
 
-// Загружаем обзор при старте
+// Старт
 loadOverview();
+loadPets();

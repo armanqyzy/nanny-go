@@ -6,6 +6,7 @@
     <title>Войти | Nanny Platform</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
+
 <body>
 <div class="background">
     <div class="form-card">
@@ -25,48 +26,6 @@
         </p>
     </div>
 </div>
-
-<script>
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const errorBox = document.getElementById('error-box');
-        const formData = new FormData(e.target);
-        const data = Object.fromEntries(formData);
-
-        try {
-            const response = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(data)
-            });
-
-            const result = await response.json();
-
-            if (response.ok) {
-                // Сохраняем данные пользователя
-                localStorage.setItem('user', JSON.stringify({
-                    id: result.user_id,
-                    role: result.role,
-                    email: data.email
-                }));
-
-                // Редирект в зависимости от роли
-                if (result.role === 'admin') {
-                    window.location.href = '/admin-dashboard.html';
-                } else if (result.role === 'sitter') {
-                    window.location.href = '/sitter-dashboard.html';
-                } else {
-                    window.location.href = '/dashboard.html';
-                }
-            } else {
-                errorBox.style.display = 'block';
-                errorBox.innerText = result.error || 'Ошибка входа';
-            }
-        } catch (err) {
-            errorBox.style.display = 'block';
-            errorBox.innerText = 'Ошибка соединения с сервером';
-        }
-    });
-</script>
+<script src="/static/login.js"></script>
 </body>
 </html>
