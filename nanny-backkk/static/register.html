@@ -49,65 +49,71 @@
 </div>
 
 <script>
-// Показать/скрыть поля для няни
-document.querySelectorAll('input[name="role"]').forEach(radio => {
-    radio.addEventListener('change', (e) => {
-        const sitterFields = document.getElementById('sitterFields');
-        if (e.target.value === 'sitter') {
-            sitterFields.style.display = 'block';
-            sitterFields.querySelectorAll('input, textarea').forEach(field => {
-                field.required = true;
+    // Показать/скрыть поля для няни
+    document.querySelectorAll('input[name="role"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            const sitterFields = document.getElementById('sitterFields');
+            if (e.target.value === 'sitter') {
+                sitterFields.style.display = 'block';
+                sitterFields.querySelectorAll('input, textarea').forEach(field => {
+                    field.required = true;
+                });
+            } else {
+                sitterFields.style.display = 'none';
+                sitterFields.querySelectorAll('input, textarea').forEach(field => {
+                    field.required = false;
+                });
+            }
+        });
+    });
+
+    // Валидация и отправка формы
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const errorBox = document.getElementById('error-box');
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData);
+
+        // 🔹 Приводим числовое поле к числу
+        if (data.experience_years) {
+            data.experience_years = Number(data.experience_years);
+        }
+
+        // Валидация пароля
+        const password = data.password;
+        if (password.length < 8) {
+            errorBox.style.display = 'block';
+            errorBox.innerText = 'Пароль должен быть не короче 8 символов';
+            return;
+        }
+
+        // Выбор endpoint
+        const endpoint = data.role === 'owner'
+            ? '/api/auth/register/owner'
+            : '/api/auth/register/sitter';
+
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
             });
-        } else {
-            sitterFields.style.display = 'none';
-            sitterFields.querySelectorAll('input, textarea').forEach(field => {
-                field.required = false;
-            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                alert('✅ ' + result.message);
+                window.location.href = '/login';
+            } else {
+                errorBox.style.display = 'block';
+                errorBox.innerText = result.error || 'Ошибка регистрации';
+            }
+        } catch (err) {
+            errorBox.style.display = 'block';
+            errorBox.innerText = 'Ошибка соединения с сервером';
         }
     });
-});
-
-// Валидация и отправка формы
-document.getElementById('registerForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const errorBox = document.getElementById('error-box');
-    const formData = new FormData(e.target);
-    const data = Object.fromEntries(formData);
-
-    // Валидация пароля
-    const password = data.password;
-    if (password.length < 8) {
-        errorBox.style.display = 'block';
-        errorBox.innerText = 'Пароль должен быть не короче 8 символов';
-        return;
-    }
-
-    // Выбор endpoint
-    const endpoint = data.role === 'owner' 
-        ? '/api/auth/register/owner' 
-        : '/api/auth/register/sitter';
-
-    try {
-        const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(data)
-        });
-
-        const result = await response.json();
-
-        if (response.ok) {
-            alert('✅ ' + result.message);
-            window.location.href = '/login';
-        } else {
-            errorBox.style.display = 'block';
-            errorBox.innerText = result.error || 'Ошибка регистрации';
-        }
-    } catch (err) {
-        errorBox.style.display = 'block';
-        errorBox.innerText = 'Ошибка соединения с сервером';
-    }
-});
 </script>
+
 </body>
 </html>

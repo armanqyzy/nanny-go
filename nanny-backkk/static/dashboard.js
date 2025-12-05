@@ -11,17 +11,17 @@ document.querySelectorAll('.sidebar-menu a').forEach(link => {
     link.addEventListener('click', (e) => {
         e.preventDefault();
         const tab = e.target.dataset.tab;
-        
+
         // Убираем active класс со всех ссылок
         document.querySelectorAll('.sidebar-menu a').forEach(l => l.classList.remove('active'));
         e.target.classList.add('active');
-        
+
         // Скрываем все табы
         document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
-        
+
         // Показываем нужный таб
         document.getElementById(tab + '-tab').style.display = 'block';
-        
+
         // Загружаем данные
         loadTabData(tab);
     });
@@ -52,13 +52,15 @@ async function loadOverview() {
         const petsRes = await fetch(`/api/owners/${user.id}/pets`);
         const pets = await petsRes.json();
         document.getElementById('petsCount').textContent = pets.length || 0;
-        
+
         // Загружаем бронирования
         const bookingsRes = await fetch(`/api/owners/${user.id}/bookings`);
-        const bookings = await bookingsRes.json();
+        let bookings = await bookingsRes.json();
+        if (!Array.isArray(bookings)) {
+            bookings = [];
+        }
         document.getElementById('bookingsCount').textContent = bookings.length || 0;
-        
-        // Отображаем последние 5 бронирований
+
         const recentDiv = document.getElementById('recentBookings');
         if (bookings.length === 0) {
             recentDiv.innerHTML = '<p class="empty-state">Пока нет бронирований</p>';
@@ -92,19 +94,18 @@ async function loadOverview() {
     }
 }
 
-// Загрузка питомцев
 async function loadPets() {
     try {
         const res = await fetch(`/api/owners/${user.id}/pets`);
-        const pets = await petsRes.json();
-        
+        const pets = await res.json();
+
         const petsDiv = document.getElementById('petsList');
-        
+
         if (pets.length === 0) {
             petsDiv.innerHTML = '<div class="empty-state"><h3>У вас пока нет питомцев</h3><p>Добавьте первого питомца!</p></div>';
             return;
         }
-        
+
         petsDiv.innerHTML = `
             <table>
                 <thead>
@@ -136,19 +137,20 @@ async function loadPets() {
     }
 }
 
+
 // Загрузка бронирований
 async function loadBookings() {
     try {
         const res = await fetch(`/api/owners/${user.id}/bookings`);
         const bookings = await res.json();
-        
+
         const bookingsDiv = document.getElementById('bookingsList');
-        
+
         if (bookings.length === 0) {
             bookingsDiv.innerHTML = '<div class="empty-state"><h3>У вас пока нет бронирований</h3></div>';
             return;
         }
-        
+
         bookingsDiv.innerHTML = `
             <table>
                 <thead>
@@ -187,22 +189,22 @@ async function loadBookings() {
 async function searchServices() {
     const type = document.getElementById('serviceTypeFilter').value;
     const location = document.getElementById('locationFilter').value;
-    
+
     try {
         const params = new URLSearchParams();
         if (type) params.append('type', type);
         if (location) params.append('location', location);
-        
+
         const res = await fetch(`/api/services/search?${params}`);
         const services = await res.json();
-        
+
         const resultsDiv = document.getElementById('searchResults');
-        
+
         if (services.length === 0) {
             resultsDiv.innerHTML = '<p class="empty-state">Услуги не найдены</p>';
             return;
         }
-        
+
         resultsDiv.innerHTML = services.map(s => `
             <div class="card" style="margin-bottom: 15px;">
                 <h3>${s.sitter_name}</h3>
@@ -246,9 +248,9 @@ async function loadPetsForBooking() {
     try {
         const res = await fetch(`/api/owners/${user.id}/pets`);
         const pets = await res.json();
-        
+
         const select = document.getElementById('bookingPetSelect');
-        select.innerHTML = pets.map(pet => 
+        select.innerHTML = pets.map(pet =>
             `<option value="${pet.pet_id}">${pet.name} (${pet.type})</option>`
         ).join('');
     } catch (err) {
@@ -257,19 +259,24 @@ async function loadPetsForBooking() {
 }
 
 // Обработчики форм
+
 document.getElementById('addPetForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData);
-    data.owner_id = user.id;
-    
+
+    if (data.age) {
+        data.age = Number(data.age);
+    }
+    data.owner_id = Number(user.id);
+
     try {
         const res = await fetch('/api/pets', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(data)
         });
-        
+
         if (res.ok) {
             alert('✅ Питомец добавлен!');
             closeModal('addPetModal');
@@ -288,19 +295,24 @@ document.getElementById('createBookingForm').addEventListener('submit', async (e
     e.preventDefault();
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData);
-    data.owner_id = user.id;
-    
-    // Конвертируем время в ISO формат
+
+    // 🔹 Преобразуем ID в числа
+    data.owner_id  = Number(user.id);
+    data.pet_id    = Number(data.pet_id);
+    data.sitter_id = Number(data.sitter_id);
+    data.service_id = Number(data.service_id);
+
+    // 🔹 Конвертируем время в ISO формат
     data.start_time = new Date(data.start_time).toISOString();
-    data.end_time = new Date(data.end_time).toISOString();
-    
+    data.end_time   = new Date(data.end_time).toISOString();
+
     try {
         const res = await fetch('/api/bookings', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(data)
         });
-        
+
         if (res.ok) {
             alert('✅ Бронирование создано!');
             closeModal('createBookingModal');
@@ -315,10 +327,11 @@ document.getElementById('createBookingForm').addEventListener('submit', async (e
     }
 });
 
+
 // Удалить питомца
 async function deletePet(petId) {
     if (!confirm('Удалить питомца?')) return;
-    
+
     try {
         const res = await fetch(`/api/pets/${petId}`, { method: 'DELETE' });
         if (res.ok) {
@@ -333,7 +346,7 @@ async function deletePet(petId) {
 // Отменить бронирование
 async function cancelBooking(bookingId) {
     if (!confirm('Отменить бронирование?')) return;
-    
+
     try {
         const res = await fetch(`/api/bookings/${bookingId}/cancel`, { method: 'POST' });
         if (res.ok) {

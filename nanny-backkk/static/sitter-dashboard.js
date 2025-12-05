@@ -11,13 +11,13 @@ document.querySelectorAll('.sidebar-menu a').forEach(link => {
     link.addEventListener('click', (e) => {
         e.preventDefault();
         const tab = e.target.dataset.tab;
-        
+
         document.querySelectorAll('.sidebar-menu a').forEach(l => l.classList.remove('active'));
         e.target.classList.add('active');
-        
+
         document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
         document.getElementById(tab + '-tab').style.display = 'block';
-        
+
         loadTabData(tab);
     });
 });
@@ -49,22 +49,22 @@ async function loadOverview() {
         const servicesRes = await fetch(`/api/sitters/${user.id}/services`);
         const services = await servicesRes.json();
         document.getElementById('servicesCount').textContent = services.length || 0;
-        
+
         // Загружаем бронирования
         const bookingsRes = await fetch(`/api/sitters/${user.id}/bookings`);
         const bookings = await bookingsRes.json();
         document.getElementById('bookingsCount').textContent = bookings.length || 0;
-        
+
         // Загружаем рейтинг
         const ratingRes = await fetch(`/api/sitters/${user.id}/rating`);
         const rating = await ratingRes.json();
         document.getElementById('ratingValue').textContent = rating.average_rating.toFixed(1);
         document.getElementById('reviewsCount').textContent = rating.review_count;
-        
+
         // Активные заявки (pending)
         const pending = bookings.filter(b => b.status === 'pending');
         const activeDiv = document.getElementById('activeBookings');
-        
+
         if (pending.length === 0) {
             activeDiv.innerHTML = '<p class="empty-state">Нет новых заявок</p>';
         } else {
@@ -96,7 +96,7 @@ async function loadOverview() {
                 </table>
             `;
         }
-        
+
         // Проверяем статус аккаунта
         checkAccountStatus();
     } catch (err) {
@@ -109,7 +109,7 @@ async function checkAccountStatus() {
     try {
         const res = await fetch(`/api/admin/sitters/${user.id}`);
         const details = await res.json();
-        
+
         const badge = document.getElementById('statusBadge');
         if (details.status === 'pending') {
             badge.innerHTML = '<span class="badge badge-pending">⏳ На модерации</span>';
@@ -128,11 +128,11 @@ async function loadBookings() {
     try {
         const res = await fetch(`/api/sitters/${user.id}/bookings`);
         const bookings = await res.json();
-        
+
         // Новые заявки
         const pending = bookings.filter(b => b.status === 'pending');
         const pendingDiv = document.getElementById('pendingBookings');
-        
+
         if (pending.length === 0) {
             pendingDiv.innerHTML = '<p class="empty-state">Нет новых заявок</p>';
         } else {
@@ -166,7 +166,7 @@ async function loadBookings() {
                 </table>
             `;
         }
-        
+
         // Вся история
         const allDiv = document.getElementById('allBookings');
         if (bookings.length === 0) {
@@ -211,14 +211,14 @@ async function loadServices() {
     try {
         const res = await fetch(`/api/sitters/${user.id}/services`);
         const services = await res.json();
-        
+
         const servicesDiv = document.getElementById('servicesList');
-        
+
         if (services.length === 0) {
             servicesDiv.innerHTML = '<div class="empty-state"><h3>У вас пока нет услуг</h3><p>Добавьте первую услугу!</p></div>';
             return;
         }
-        
+
         servicesDiv.innerHTML = `
             <table>
                 <thead>
@@ -255,20 +255,20 @@ async function loadReviews() {
             fetch(`/api/sitters/${user.id}/reviews`),
             fetch(`/api/sitters/${user.id}/rating`)
         ]);
-        
+
         const reviews = await reviewsRes.json();
         const rating = await ratingRes.json();
-        
+
         document.getElementById('avgRating').textContent = rating.average_rating.toFixed(1);
         document.getElementById('totalReviews').textContent = rating.review_count;
-        
+
         const reviewsDiv = document.getElementById('reviewsList');
-        
+
         if (reviews.length === 0) {
             reviewsDiv.innerHTML = '<p class="empty-state">Пока нет отзывов</p>';
             return;
         }
-        
+
         reviewsDiv.innerHTML = reviews.map(r => `
             <div class="card" style="margin-bottom: 15px;">
                 <div class="rating">${renderStars(r.rating)}</div>
@@ -287,7 +287,7 @@ async function loadProfile() {
     try {
         const res = await fetch(`/api/admin/sitters/${user.id}`);
         const details = await res.json();
-        
+
         document.getElementById('profileInfo').innerHTML = `
             <div class="form-group">
                 <label>Имя:</label>
@@ -347,14 +347,14 @@ document.getElementById('addServiceForm').addEventListener('submit', async (e) =
     const data = Object.fromEntries(formData);
     data.sitter_id = user.id;
     data.price_per_hour = parseFloat(data.price_per_hour);
-    
+
     try {
         const res = await fetch('/api/services', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(data)
         });
-        
+
         if (res.ok) {
             alert('✅ Услуга добавлена!');
             closeModal('addServiceModal');
@@ -386,7 +386,7 @@ async function confirmBooking(bookingId) {
 
 async function rejectBooking(bookingId) {
     if (!confirm('Отклонить заявку?')) return;
-    
+
     try {
         const res = await fetch(`/api/bookings/${bookingId}/cancel`, { method: 'POST' });
         if (res.ok) {
@@ -401,7 +401,7 @@ async function rejectBooking(bookingId) {
 
 async function completeBooking(bookingId) {
     if (!confirm('Завершить бронирование?')) return;
-    
+
     try {
         const res = await fetch(`/api/bookings/${bookingId}/complete`, { method: 'POST' });
         if (res.ok) {
@@ -416,7 +416,7 @@ async function completeBooking(bookingId) {
 // Удалить услугу
 async function deleteService(serviceId) {
     if (!confirm('Удалить услугу?')) return;
-    
+
     try {
         const res = await fetch(`/api/services/${serviceId}`, { method: 'DELETE' });
         if (res.ok) {

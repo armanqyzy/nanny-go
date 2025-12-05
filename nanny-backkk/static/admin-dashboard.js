@@ -9,13 +9,13 @@ document.querySelectorAll('.sidebar-menu a').forEach(link => {
     link.addEventListener('click', (e) => {
         e.preventDefault();
         const tab = e.target.dataset.tab;
-        
+
         document.querySelectorAll('.sidebar-menu a').forEach(l => l.classList.remove('active'));
         e.target.classList.add('active');
-        
+
         document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
         document.getElementById(tab + '-tab').style.display = 'block';
-        
+
         loadTabData(tab);
     });
 });
@@ -44,25 +44,25 @@ async function loadOverview() {
         const usersRes = await fetch('/api/admin/users');
         const users = await usersRes.json();
         document.getElementById('totalUsers').textContent = users.length;
-        
+
         // Фильтруем нянь
         const sitters = users.filter(u => u.role === 'sitter');
         document.getElementById('totalSitters').textContent = sitters.length;
-        
+
         // Загружаем заявки нянь
         const pendingRes = await fetch('/api/admin/sitters/pending');
         const pending = await pendingRes.json();
         document.getElementById('pendingCount').textContent = pending.length;
-        
+
         // Считаем одобренных
         // Для этого нам нужно получить всех нянь с полной информацией
         // В реальности это можно оптимизировать
         document.getElementById('approvedCount').textContent = sitters.length - pending.length;
-        
+
         // Последние 5 пользователей
         const recentDiv = document.getElementById('recentUsers');
         const recent = users.slice(0, 5);
-        
+
         recentDiv.innerHTML = `
             <table>
                 <thead>
@@ -97,14 +97,14 @@ async function loadPendingSitters() {
     try {
         const res = await fetch('/api/admin/sitters/pending');
         const sitters = await res.json();
-        
+
         const pendingDiv = document.getElementById('pendingSitters');
-        
+
         if (sitters.length === 0) {
             pendingDiv.innerHTML = '<div class="empty-state"><h3>Нет заявок на модерацию</h3></div>';
             return;
         }
-        
+
         // Загружаем полную информацию для каждой няни
         const sittersWithDetails = await Promise.all(
             sitters.map(async (s) => {
@@ -116,7 +116,7 @@ async function loadPendingSitters() {
                 }
             })
         );
-        
+
         pendingDiv.innerHTML = sittersWithDetails.map(s => `
             <div class="card" style="margin-bottom: 20px;">
                 <h3>${s.full_name || 'Няня #' + s.sitter_id}</h3>
@@ -143,9 +143,9 @@ async function loadUsers() {
     try {
         const res = await fetch('/api/admin/users');
         const users = await res.json();
-        
+
         const usersDiv = document.getElementById('usersList');
-        
+
         usersDiv.innerHTML = `
             <table>
                 <thead>
@@ -186,33 +186,33 @@ async function loadSitters() {
     try {
         const usersRes = await fetch('/api/admin/users');
         const users = await usersRes.json();
-        
+
         const sitters = users.filter(u => u.role === 'sitter');
-        
+
         const sittersDiv = document.getElementById('sittersList');
-        
+
         if (sitters.length === 0) {
             sittersDiv.innerHTML = '<p class="empty-state">Нет зарегистрированных нянь</p>';
             return;
         }
-        
+
         // Загружаем детали для каждой няни
         const sittersWithDetails = await Promise.all(
             sitters.map(async (s) => {
                 try {
                     const detailsRes = await fetch(`/api/admin/sitters/${s.user_id}`);
                     const details = await detailsRes.json();
-                    
+
                     const ratingRes = await fetch(`/api/sitters/${s.user_id}/rating`);
                     const rating = await ratingRes.json();
-                    
+
                     return { ...details, rating: rating.average_rating, review_count: rating.review_count };
                 } catch {
                     return s;
                 }
             })
         );
-        
+
         sittersDiv.innerHTML = `
             <table>
                 <thead>
@@ -256,11 +256,11 @@ async function showSitterDetails(sitterId) {
             fetch(`/api/sitters/${sitterId}/reviews`),
             fetch(`/api/sitters/${sitterId}/services`)
         ]);
-        
+
         const details = await detailsRes.json();
         const reviews = await reviewsRes.json();
         const services = await servicesRes.json();
-        
+
         const content = document.getElementById('sitterDetailsContent');
         content.innerHTML = `
             <div class="form-group">
@@ -315,7 +315,7 @@ async function showSitterDetails(sitterId) {
                 </div>
             `).join('') : '<p>Нет отзывов</p>'}
         `;
-        
+
         document.getElementById('sitterDetailsModal').classList.add('active');
     } catch (err) {
         console.error('Ошибка загрузки деталей:', err);
@@ -326,7 +326,7 @@ async function showSitterDetails(sitterId) {
 // Одобрить няню
 async function approveSitter(sitterId) {
     if (!confirm('Одобрить эту няню?')) return;
-    
+
     try {
         const res = await fetch(`/api/admin/sitters/${sitterId}/approve`, { method: 'POST' });
         if (res.ok) {
@@ -345,7 +345,7 @@ async function approveSitter(sitterId) {
 // Отклонить няню
 async function rejectSitter(sitterId) {
     if (!confirm('Отклонить эту няню?')) return;
-    
+
     try {
         const res = await fetch(`/api/admin/sitters/${sitterId}/reject`, { method: 'POST' });
         if (res.ok) {
@@ -364,7 +364,7 @@ async function rejectSitter(sitterId) {
 // Удалить пользователя
 async function deleteUser(userId, userName) {
     if (!confirm(`Удалить пользователя "${userName}"?`)) return;
-    
+
     try {
         const res = await fetch(`/api/admin/users/${userId}`, { method: 'DELETE' });
         if (res.ok) {
