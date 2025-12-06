@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"nanny-backend/pkg/validator"
+
 	"github.com/gorilla/mux"
 )
 
@@ -17,24 +19,29 @@ func NewHandler(service Service) *Handler {
 }
 
 type CreatePetRequest struct {
-	OwnerID int    `json:"owner_id"`
-	Name    string `json:"name"`
-	Type    string `json:"type"`
-	Age     int    `json:"age"`
-	Notes   string `json:"notes,omitempty"`
+	OwnerID int    `json:"owner_id" validate:"required,gt=0"`
+	Name    string `json:"name" validate:"required,min=1,max=100"`
+	Type    string `json:"type" validate:"required,pet_type"`
+	Age     int    `json:"age" validate:"required,gte=0,lte=30"`
+	Notes   string `json:"notes,omitempty" validate:"max=500"`
 }
 
 type UpdatePetRequest struct {
-	Name  string `json:"name"`
-	Type  string `json:"type"`
-	Age   int    `json:"age"`
-	Notes string `json:"notes,omitempty"`
+	Name  string `json:"name" validate:"required,min=1,max=100"`
+	Type  string `json:"type" validate:"required,pet_type"`
+	Age   int    `json:"age" validate:"required,gte=0,lte=30"`
+	Notes string `json:"notes,omitempty" validate:"max=500"`
 }
 
 func (h *Handler) CreatePet(w http.ResponseWriter, r *http.Request) {
 	var req CreatePetRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondWithError(w, http.StatusBadRequest, "неверные данные")
+		return
+	}
+
+	if err := validator.Validate(&req); err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -58,6 +65,11 @@ func (h *Handler) GetPet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if petID <= 0 {
+		respondWithError(w, http.StatusBadRequest, "ID питомца должен быть положительным числом")
+		return
+	}
+
 	pet, err := h.service.GetPetByID(petID)
 	if err != nil {
 		respondWithError(w, http.StatusNotFound, err.Error())
@@ -72,6 +84,11 @@ func (h *Handler) GetOwnerPets(w http.ResponseWriter, r *http.Request) {
 	ownerID, err := strconv.Atoi(vars["owner_id"])
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "неверный ID владельца")
+		return
+	}
+
+	if ownerID <= 0 {
+		respondWithError(w, http.StatusBadRequest, "ID владельца должен быть положительным числом")
 		return
 	}
 
@@ -92,9 +109,19 @@ func (h *Handler) UpdatePet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if petID <= 0 {
+		respondWithError(w, http.StatusBadRequest, "ID питомца должен быть положительным числом")
+		return
+	}
+
 	var req UpdatePetRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondWithError(w, http.StatusBadRequest, "неверные данные")
+		return
+	}
+
+	if err := validator.Validate(&req); err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -114,6 +141,11 @@ func (h *Handler) DeletePet(w http.ResponseWriter, r *http.Request) {
 	petID, err := strconv.Atoi(vars["id"])
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "неверный ID питомца")
+		return
+	}
+
+	if petID <= 0 {
+		respondWithError(w, http.StatusBadRequest, "ID питомца должен быть положительным числом")
 		return
 	}
 

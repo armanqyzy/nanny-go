@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"nanny-backend/pkg/validator"
+
 	"github.com/gorilla/mux"
 )
 
@@ -17,22 +19,27 @@ func NewHandler(service Service) *Handler {
 }
 
 type CreateReviewRequest struct {
-	BookingID int    `json:"booking_id"`
-	OwnerID   int    `json:"owner_id"`
-	SitterID  int    `json:"sitter_id"`
-	Rating    int    `json:"rating"`
-	Comment   string `json:"comment,omitempty"`
+	BookingID int    `json:"booking_id" validate:"required,gt=0"`
+	OwnerID   int    `json:"owner_id" validate:"required,gt=0"`
+	SitterID  int    `json:"sitter_id" validate:"required,gt=0"`
+	Rating    int    `json:"rating" validate:"required,gte=1,lte=5"`
+	Comment   string `json:"comment,omitempty" validate:"max=1000"`
 }
 
 type UpdateReviewRequest struct {
-	Rating  int    `json:"rating"`
-	Comment string `json:"comment,omitempty"`
+	Rating  int    `json:"rating" validate:"required,gte=1,lte=5"`
+	Comment string `json:"comment,omitempty" validate:"max=1000"`
 }
 
 func (h *Handler) CreateReview(w http.ResponseWriter, r *http.Request) {
 	var req CreateReviewRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondWithError(w, http.StatusBadRequest, "неверные данные")
+		return
+	}
+
+	if err := validator.Validate(&req); err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -62,6 +69,11 @@ func (h *Handler) GetReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if reviewID <= 0 {
+		respondWithError(w, http.StatusBadRequest, "ID отзыва должен быть положительным числом")
+		return
+	}
+
 	review, err := h.service.GetReview(reviewID)
 	if err != nil {
 		respondWithError(w, http.StatusNotFound, err.Error())
@@ -76,6 +88,11 @@ func (h *Handler) GetSitterReviews(w http.ResponseWriter, r *http.Request) {
 	sitterID, err := strconv.Atoi(vars["sitter_id"])
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "неверный ID няни")
+		return
+	}
+
+	if sitterID <= 0 {
+		respondWithError(w, http.StatusBadRequest, "ID няни должен быть положительным числом")
 		return
 	}
 
@@ -96,6 +113,11 @@ func (h *Handler) GetSitterRating(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if sitterID <= 0 {
+		respondWithError(w, http.StatusBadRequest, "ID няни должен быть положительным числом")
+		return
+	}
+
 	avgRating, count, err := h.service.GetSitterRating(sitterID)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
@@ -103,7 +125,7 @@ func (h *Handler) GetSitterRating(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusOK, map[string]interface{}{
-		"sitter_id":     sitterID,
+		"sitter_id":      sitterID,
 		"average_rating": avgRating,
 		"review_count":   count,
 	})
@@ -114,6 +136,11 @@ func (h *Handler) GetBookingReview(w http.ResponseWriter, r *http.Request) {
 	bookingID, err := strconv.Atoi(vars["booking_id"])
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "неверный ID бронирования")
+		return
+	}
+
+	if bookingID <= 0 {
+		respondWithError(w, http.StatusBadRequest, "ID бронирования должен быть положительным числом")
 		return
 	}
 
@@ -134,9 +161,19 @@ func (h *Handler) UpdateReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if reviewID <= 0 {
+		respondWithError(w, http.StatusBadRequest, "ID отзыва должен быть положительным числом")
+		return
+	}
+
 	var req UpdateReviewRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondWithError(w, http.StatusBadRequest, "неверные данные")
+		return
+	}
+
+	if err := validator.Validate(&req); err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -156,6 +193,11 @@ func (h *Handler) DeleteReview(w http.ResponseWriter, r *http.Request) {
 	reviewID, err := strconv.Atoi(vars["id"])
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "неверный ID отзыва")
+		return
+	}
+
+	if reviewID <= 0 {
+		respondWithError(w, http.StatusBadRequest, "ID отзыва должен быть положительным числом")
 		return
 	}
 

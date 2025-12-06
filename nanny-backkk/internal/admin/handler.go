@@ -16,7 +16,6 @@ func NewHandler(service Service) *Handler {
 	return &Handler{service: service}
 }
 
-// GetPendingSitters возвращает список заявок нянь на рассмотрении
 func (h *Handler) GetPendingSitters(w http.ResponseWriter, r *http.Request) {
 	sitters, err := h.service.GetPendingSitters()
 	if err != nil {
@@ -27,7 +26,6 @@ func (h *Handler) GetPendingSitters(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, http.StatusOK, sitters)
 }
 
-// ApproveSitter одобряет заявку няни
 func (h *Handler) ApproveSitter(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	sitterID, err := strconv.Atoi(vars["sitter_id"])
@@ -47,7 +45,6 @@ func (h *Handler) ApproveSitter(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// RejectSitter отклоняет заявку няни
 func (h *Handler) RejectSitter(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	sitterID, err := strconv.Atoi(vars["sitter_id"])
@@ -67,7 +64,6 @@ func (h *Handler) RejectSitter(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// GetAllUsers возвращает список всех пользователей
 func (h *Handler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	users, err := h.service.GetAllUsers()
 	if err != nil {
@@ -78,7 +74,6 @@ func (h *Handler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, http.StatusOK, users)
 }
 
-// GetUser возвращает информацию о конкретном пользователе
 func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID, err := strconv.Atoi(vars["user_id"])
@@ -96,7 +91,6 @@ func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, http.StatusOK, user)
 }
 
-// DeleteUser удаляет пользователя
 func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID, err := strconv.Atoi(vars["user_id"])
@@ -116,7 +110,6 @@ func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// GetSitterDetails возвращает детальную информацию о няне
 func (h *Handler) GetSitterDetails(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	sitterID, err := strconv.Atoi(vars["sitter_id"])

@@ -31,7 +31,6 @@ func main() {
 
 	r.Use(middleware.CORS)
 
-	// ---------- HTML-страницы ----------
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./static/login.html")
 	}).Methods("GET")
@@ -60,7 +59,6 @@ func main() {
 	staticHandler := http.FileServer(staticDir)
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", staticHandler))
 
-	// ---------- Модули API ----------
 	setupAuthModule(r, db)
 	setupPetsModule(r, db)
 	setupBookingsModule(r, db)
@@ -68,12 +66,12 @@ func main() {
 	setupServicesModule(r, db)
 	setupAdminModule(r, db)
 
-	authRepo := auth.NewRepository(db.DB)
-	authService := auth.NewService(authRepo)
-	authHandler := auth.NewHandler(authService)
-	r.HandleFunc("/register/owner", authHandler.RegisterOwner).Methods("POST")
-	r.HandleFunc("/register/sitter", authHandler.RegisterSitter).Methods("POST")
-	r.HandleFunc("/login", authHandler.Login).Methods("POST")
+	//authRepo := auth.NewRepository(db.DB)
+	//authService := auth.NewService(authRepo)
+	//authHandler := auth.NewHandler(authService)
+	//r.HandleFunc("/register/owner", authHandler.RegisterOwner).Methods("POST")
+	//r.HandleFunc("/register/sitter", authHandler.RegisterSitter).Methods("POST")
+	//r.HandleFunc("/login", authHandler.Login).Methods("POST")
 
 	addr := fmt.Sprintf(":%s", cfg.Server.Port)
 	fmt.Printf("✅ Server running on http://localhost%s\n", addr)

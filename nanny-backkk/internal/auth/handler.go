@@ -3,6 +3,8 @@ package auth
 import (
 	"encoding/json"
 	"net/http"
+
+	"nanny-backend/pkg/validator"
 )
 
 type Handler struct {
@@ -14,32 +16,37 @@ func NewHandler(service Service) *Handler {
 }
 
 type RegisterOwnerRequest struct {
-	FullName string `json:"full_name"`
-	Email    string `json:"email"`
-	Phone    string `json:"phone"`
-	Password string `json:"password"`
+	FullName string `json:"full_name" validate:"required,min=2,max=100"`
+	Email    string `json:"email" validate:"required,email"`
+	Phone    string `json:"phone" validate:"required,phone_kz"`
+	Password string `json:"password" validate:"required,min=8,max=72"`
 }
 
 type RegisterSitterRequest struct {
-	FullName        string `json:"full_name"`
-	Email           string `json:"email"`
-	Phone           string `json:"phone"`
-	Password        string `json:"password"`
-	ExperienceYears int    `json:"experience_years"`
-	Certificates    string `json:"certificates"`
-	Preferences     string `json:"preferences"`
-	Location        string `json:"location"`
+	FullName        string `json:"full_name" validate:"required,min=2,max=100"`
+	Email           string `json:"email" validate:"required,email"`
+	Phone           string `json:"phone" validate:"required,phone_kz"`
+	Password        string `json:"password" validate:"required,min=8,max=72"`
+	ExperienceYears int    `json:"experience_years" validate:"required,gte=0,lte=50"`
+	Certificates    string `json:"certificates" validate:"max=500"`
+	Preferences     string `json:"preferences" validate:"max=500"`
+	Location        string `json:"location" validate:"required,min=2,max=200"`
 }
 
 type LoginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=1"`
 }
 
 func (h *Handler) RegisterOwner(w http.ResponseWriter, r *http.Request) {
 	var req RegisterOwnerRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondWithError(w, http.StatusBadRequest, "неверные данные")
+		return
+	}
+
+	if err := validator.Validate(&req); err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -58,6 +65,11 @@ func (h *Handler) RegisterSitter(w http.ResponseWriter, r *http.Request) {
 	var req RegisterSitterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondWithError(w, http.StatusBadRequest, "неверные данные")
+		return
+	}
+
+	if err := validator.Validate(&req); err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -88,14 +100,17 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// сервис теперь возвращает: user, token, err
+	if err := validator.Validate(&req); err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
 	user, token, err := h.service.Login(req.Email, req.Password)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
-	// Отправляем токен и данные пользователя
 	respondWithJSON(w, http.StatusOK, map[string]interface{}{
 		"message":   "вход выполнен",
 		"user_id":   user.UserID,
