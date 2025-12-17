@@ -173,10 +173,10 @@ Query params (all optional):
 - `max_price` - maximum price
 
 Example:
-```
-/api/services/search?type=walking&location=Almaty&max_price=3000
+`/api/services/search?type=walking&location=Almaty&max_price=3000`
+
 Response (200):
-json[
+```json[
   {
     "service_id": 1,
     "sitter_id": 2,
@@ -189,8 +189,11 @@ json[
     "total_reviews": 25
   }
 ]
-Get Service Details
-GET /api/services/{id}
+```
+
+## Get Service Details
+`GET /api/services/{id}`
+
 Public endpoint
 Get Sitter's Services
 GET /api/sitters/{sitter_id}/services
@@ -198,75 +201,98 @@ Public endpoint
 Create Service
 POST /api/services
 Needs auth (Sitter only, must be approved)
-Request:
-json{
+
+**Request:**
+```json{
   "type": "boarding",
   "price_per_hour": 7000.00,
   "description": "Pet stays at my place overnight"
 }
-Update Service
+```
+
+## Update Service
 PUT /api/services/{id}
 Needs auth (Sitter only, must be your service)
 Delete Service
 DELETE /api/services/{id}
 Needs auth (Sitter only)
 
-Bookings
+## Bookings
 Create Booking
 POST /api/bookings
 Needs auth (Owner only)
-Request:
-json{
+
+**Request:**
+```json{
   "sitter_id": 2,
   "pet_id": 1,
   "service_id": 1,
   "start_time": "2025-12-20T10:00:00Z",
   "end_time": "2025-12-20T11:00:00Z"
 }
-Response (201):
-json{
+```
+
+**Response (201):**
+```json{
   "booking_id": 1,
   "status": "pending",
   "message": "Booking created successfully"
 }
-Booking flow: pending → confirmed → completed (or cancelled anytime)
-Get Booking
-GET /api/bookings/{id}
+```
+
+Booking flow: pending -> confirmed -> completed (or cancelled anytime)
+
+### Get Booking
+**GET**  `/api/bookings/{id}`
 Public endpoint
-Confirm Booking
-POST /api/bookings/{id}/confirm
+
+**Confirm Booking**
+
+**POST** `/api/bookings/{id}/confirm`
 Needs auth (Sitter only)
 Only sitter assigned to booking can confirm
-Cancel Booking
-POST /api/bookings/{id}/cancel
+
+**Cancel Booking**
+
+**POST** `/api/bookings/{id}/cancel`
 Needs auth (Owner or Sitter)
-Complete Booking
-POST /api/bookings/{id}/complete
+
+**Complete Booking**
+
+**POST** `/api/bookings/{id}/complete`
 Needs auth (Sitter only)
 Can only complete after end_time has passed
-Get Owner's Bookings
-GET /api/owners/{owner_id}/bookings
-Optional query param: status (pending/confirmed/cancelled/completed)
-Get Sitter's Bookings
-GET /api/sitters/{sitter_id}/bookings
+
+**Get Owner's Bookings**
+
+GET `/api/owners/{owner_id}/bookings`
+Optional query param: `status` (pending/confirmed/cancelled/completed)
+
+**Get Sitter's Bookings**
+
+GET `/api/sitters/{sitter_id}/bookings`
 Same as owner's bookings
 
-Reviews
-Create Review
-POST /api/reviews
+## Reviews
+### Create Review
+
+POST `/api/reviews`
+
 Needs auth (Owner only)
+
 Request:
-json{
+```json{
   "booking_id": 1,
   "rating": 5,
   "comment": "Excellent service!"
 }
-Requirements:
+```
+**Requirements:**
 
-Rating must be 1-5
-Booking must be completed
-Can only review your own bookings
-One review per booking
+- Rating must be 1-5
+- Booking must be completed
+- Can only review your own bookings
+= One review per booking
 
 Get Review
 GET /api/reviews/{id}
@@ -314,18 +340,25 @@ role - filter by owner/sitter/admin
 limit - how many results (default 50)
 offset - for pagination
 
-Get User Details
-GET /api/admin/users/{user_id}
-Delete User
-DELETE /api/admin/users/{user_id}
+**Get User Details**
+
+GET `/api/admin/users/{user_id}`
+
+**Delete User**
+DELETE `/api/admin/users/{user_id}`
+
+
 Warning: This deletes everything related to user (pets, bookings, etc)
 
-Error Responses
+## **Error Responses**
+
 All errors return JSON:
-json{
+```json{
   "error": "Error message here"
 }
-Common status codes:
+```
+
+### Common status codes:
 
 200 - OK
 201 - Created
@@ -336,9 +369,11 @@ Common status codes:
 500 - Server error
 
 
-Testing
+## Testing
+
 Quick test with curl:
-bash# Register
+
+```bash# Register
 curl -X POST http://localhost:8080/api/auth/register/owner \
   -H "Content-Type: application/json" \
   -d '{"full_name":"Test","email":"test@test.com","phone":"+77001234567","password":"test123"}'
@@ -348,26 +383,29 @@ TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"test@test.com","password":"test123"}' | jq -r '.token')
 
+
 # Create pet
 curl -X POST http://localhost:8080/api/pets \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"name":"Max","type":"dog","age":2,"notes":"Good boy"}'
-Using Postman:
+```
 
-Create collection
-Add environment variables: base_url and token
-Use {{base_url}} and {{token}} in requests
+## Using Postman:
+
+1. Create collection
+2. Add environment variables: base_url and token
+3. Use {{base_url}} and {{token}} in requests
 
 
 ## Notes
 
-Tokens expire after 3 days
-Passwords are hashed with bcrypt
-Pet types are limited to cat, dog, rodent
-Service types are walking, boarding, home-care
-Start time must be in future when creating booking
-Can't review until booking is completed
+1. Tokens expire after 3 days
+2. Passwords are hashed with bcrypt
+3. Pet types are limited to cat, dog, rodent
+4. Service types are walking, boarding, home-care
+5. Start time must be in future when creating booking
+6. Can't review until booking is completed
 
 
-If you have any questions please meet the team: Anara, Nuray, Arukhan, Sabukhi
+### If you have any questions please meet the team: Anara, Nuray, Arukhan, Sabukhi
