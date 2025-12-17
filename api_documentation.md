@@ -58,7 +58,8 @@ No auth needed
 ```
 
 **Response (200):**
-```json{
+```json
+{
   "message": "Sitter registered successfully, awaiting admin approval"
 }
 ```
@@ -184,7 +185,8 @@ Example:
 `/api/services/search?type=walking&location=Almaty&max_price=3000`
 
 Response (200):
-```json[
+```json
+[
   {
     "service_id": 1,
     "sitter_id": 2,
@@ -248,7 +250,8 @@ Needs auth (Owner only)
 ```
 
 **Response (201):**
-```json{
+```json
+{
   "booking_id": 1,
   "status": "pending",
   "message": "Booking created successfully"
@@ -410,10 +413,11 @@ curl -X POST http://localhost:8080/api/auth/register/owner \
 ```
 
 # Login and save token
+```
 TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"test@test.com","password":"test123"}' | jq -r '.token')
-
+```
 
 # Create pet
 ```
