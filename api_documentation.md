@@ -385,7 +385,8 @@ Warning: This deletes everything related to user (pets, bookings, etc)
 ## **Error Responses**
 
 All errors return JSON:
-```json{
+```json
+{
   "error": "Error message here"
 }
 ```
