@@ -1,71 +1,82 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  # База данных PostgreSQL
+  # ========================
+  # PostgreSQL
+  # ========================
   postgres:
     image: postgres:15-alpine
     container_name: nanny-postgres
     restart: always
+
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-Ana4aBada$$}
       POSTGRES_DB: ${DB_NAME:-nanny_db}
+
     ports:
       - "${DB_PORT:-5432}:5432"
+
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./scripts/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+      # инициализация схемы при ПЕРВОМ запуске
+      - ./scripts/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-nanny_db}"]
       interval: 10s
       timeout: 5s
       retries: 5
+
     networks:
       - nanny-network
 
-  # Backend приложение
+
+  # ========================
+  # Go Backend
+  # ========================
   backend:
     build:
       context: .
       dockerfile: Dockerfile
+
     container_name: nanny-backend
     restart: always
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
     environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
+      # DB
+      DB_HOST: postgres          # ❗ ВАЖНО: имя сервиса
+      DB_PORT: "5432"
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-Ana4aBada$$}
       DB_NAME: ${DB_NAME:-nanny_db}
       DB_SSLMODE: ${DB_SSLMODE:-disable}
+
+      # Server
       SERVER_PORT: ${SERVER_PORT:-8080}
+
     ports:
       - "${SERVER_PORT:-8080}:8080"
-    depends_on:
-      postgres:
-        condition: service_healthy
+
     networks:
       - nanny-network
 
-  # Опционально: Redis для кеширования (будущее)
-  # redis:
-  #   image: redis:7-alpine
-  #   container_name: nanny-redis
-  #   restart: always
-  #   ports:
-  #     - "6379:6379"
-  #   volumes:
-  #     - redis_data:/data
-  #   networks:
-  #     - nanny-network
 
-# Volumes для персистентных данных
+# ========================
+# Volumes
+# ========================
 volumes:
   postgres_data:
     driver: local
-  # redis_data:
-  #   driver: local
 
-# Сеть для коммуникации между контейнерами
+
+# ========================
+# Network
+# ========================
 networks:
   nanny-network:
     driver: bridge
