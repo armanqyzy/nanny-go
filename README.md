@@ -1,14 +1,14 @@
 # Nanny - Pet Sitting Service API
 
-A comprehensive REST API backend service for a pet sitting platform that was written fully with Go, and this platform links pet owners with pet sitters in Kazakhstan providing a full features booking/review system. The team tried their best to do this!
+> A comprehensive REST API backend service for a pet sitting platform that was written fully with Go, and this platform links pet owners with pet sitters in Kazakhstan providing a full features booking/review system. The team tried their best to do this!
 
 ## Project Overview
 The Nanny is a real world solution for pet care services nowadays, because there is no reliable system for this that enables:
-Pet owners to find and book qualified sitters
-Pet sitters to offer their services and manage bookings
-Administrators to oversee platform operations and approve sitters
-Secure authentication and role-based access control
-Review and rating system for quality assurance
+1. Pet owners to find and book qualified sitters
+2. Pet sitters to offer their services and manage bookings
+3. Administrators to oversee platform operations and approve sitters
+4. Secure authentication and role-based access control
+5. Review and rating system for quality assurance
 
 
 
