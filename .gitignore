@@ -1,32 +1,42 @@
-# Default ignored files
-/shelf/
-/workspace.xml
-# Editor-based HTTP Client requests
-/httpRequests/
-# Datasource local storage ignored files
-/dataSources/
-/dataSources.local.xml
-.idea/
-
-# ===== ENV / SECRETS =====
+# ========================
+# ENV / SECRETS
+# ========================
 .env
 .env.*
 !*.example
 
-# ===== GO BUILD =====
+# ========================
+# GO
+# ========================
 bin/
 dist/
 build/
 *.exe
 *.out
+*.test
 
-# ===== LOGS =====
+# ========================
+# LOGS
+# ========================
 *.log
 logs/
 
-# ===== OS =====
+# ========================
+# DOCKER
+# ========================
+postgres_data
+docker-data
+*.pid
+
+# ========================
+# IDE
+# ========================
+.idea/
+.vscode/
+*.iml
+
+# ========================
+# OS
+# ========================
 .DS_Store
 Thumbs.db
-
-# ===== IDE =====
-*.iml
