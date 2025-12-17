@@ -15,7 +15,7 @@ Review and rating system for quality assurance
 ## Team Members
 
 | Name | Role | Responsibilities |
-| --- | --- |
+| --- | --- | --- |
 | Armankyzy Anara | Team Lead | Project coordination, authentication module development, input validation, repository organization, initial database schema design, code review and quality control, infrastructure management, environment setup |
 | Alimzhankyzy Nuray | Scrum Master | Messaging system implementation, sprint planning, owner bookings fixes, team workflow coordination, JSON response standardization, unit test development, testing strategy and implementation |
 | Kalikhan Arukhan | QA Engineer | Makefile configuration, test coverage setup, JWT authentication implementation, backend/frontend separation, code quality assurance |
