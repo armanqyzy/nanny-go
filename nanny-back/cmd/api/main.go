@@ -1,9 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
+	"time"
 
 	"github.com/gorilla/mux"
 
@@ -28,7 +34,6 @@ func main() {
 	defer db.Close()
 
 	r := mux.NewRouter()
-
 	setupAuthModule(r, db)
 	setupPetsModule(r, db)
 	setupBookingsModule(r, db)
@@ -36,10 +41,96 @@ func main() {
 	setupServicesModule(r, db)
 	setupAdminModule(r, db)
 
-	addr := fmt.Sprintf(":%s", cfg.Server.Port)
-	fmt.Printf("✅ API server running on http://localhost%s\n", addr)
 	handler := middleware.CORS(r)
-	log.Fatal(http.ListenAndServe(addr, handler))
+
+	addr := fmt.Sprintf(":%s", cfg.Server.Port)
+
+	srv := &http.Server{
+		Addr:              addr,
+		Handler:           handler,
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	workerPing := make(chan struct{}, 1)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		startBookingExpirationWorker(ctx, db, workerPing)
+	}()
+
+	go func() {
+		log.Printf("✅ API server running on http://localhost%s\n", addr)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("❌ Server error: %v", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("🛑 Shutting down...")
+
+	cancel()
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Printf("❌ Server forced to shutdown: %v", err)
+	} else {
+		log.Println("✅ HTTP server stopped gracefully")
+	}
+
+	wg.Wait()
+	log.Println("✅ Background worker stopped, app exited cleanly")
+}
+
+func startBookingExpirationWorker(ctx context.Context, db *database.Database, ping <-chan struct{}) {
+	ticker := time.NewTicker(1 * time.Hour)
+	defer ticker.Stop()
+
+	log.Println("🔄 Background worker started: expired bookings check")
+
+	for {
+		select {
+		case <-ctx.Done():
+			log.Println("⏹️ Background worker: context cancelled")
+			return
+
+		case <-ticker.C:
+			checkExpiredBookings(ctx, db)
+
+		case <-ping:
+			checkExpiredBookings(ctx, db)
+		}
+	}
+}
+
+func checkExpiredBookings(ctx context.Context, db *database.Database) {
+
+	query := `
+		UPDATE bookings
+		SET status = 'cancelled'
+		WHERE status = 'pending'
+		  AND start_time < NOW() - INTERVAL '24 hours'
+	`
+	res, err := db.DB.ExecContext(ctx, query)
+	if err != nil {
+		log.Printf("❌ Worker error updating expired bookings: %v", err)
+		return
+	}
+
+	affected, _ := res.RowsAffected()
+	if affected > 0 {
+		log.Printf("✅ Worker cancelled %d expired booking(s)", affected)
+	} else {
+		log.Println("ℹ️ Worker: no expired bookings found")
+	}
 }
 
 func setupAuthModule(r *mux.Router, db *database.Database) {
