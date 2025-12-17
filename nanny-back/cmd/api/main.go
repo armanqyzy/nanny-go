@@ -41,7 +41,11 @@ func main() {
 	setupServicesModule(r, db)
 	setupAdminModule(r, db)
 
-	handler := middleware.CORS(r)
+	handler := middleware.CORS(
+		middleware.RequestLogger(
+			middleware.RateLimit(r),
+		),
+	)
 
 	addr := fmt.Sprintf(":%s", cfg.Server.Port)
 
