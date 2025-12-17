@@ -16,10 +16,10 @@ The Nanny is a real world solution for pet care services nowadays, because there
 
 | Name | Role | Responsibilities |
 | --- | --- | --- |
-| Armankyzy Anara | Team Lead | Project coordination, authentication module development, input validation, repository organization, initial database schema design, code review and quality control, infrastructure management, environment setup |
-| Alimzhankyzy Nuray | Scrum Master | Messaging system implementation, sprint planning, owner bookings fixes, team workflow coordination, JSON response standardization, unit test development, testing strategy and implementation |
-| Kalikhan Arukhan | QA Engineer | Makefile configuration, test coverage setup, JWT authentication implementation, backend/frontend separation, code quality assurance |
-| Sabukhi Raziyev | Core Backend Developer | Docker containerization, golang-migrate setup, database migrations, deployment configuration |
+| **Armankyzy Anara** | Team Lead | Project coordination, authentication module development, input validation, repository organization, initial database schema design, code review and quality control, infrastructure management, environment setup |
+| **Alimzhankyzy Nuray** | Scrum Master | Messaging system implementation, sprint planning, owner bookings fixes, team workflow coordination, JSON response standardization, unit test development, testing strategy and implementation |
+| **Kalikhan Arukhan** | QA Engineer | Makefile configuration, test coverage setup, JWT authentication implementation, backend/frontend separation, code quality assurance |
+| **Sabukhi Raziyev** | Core Backend Developer | Docker containerization, golang-migrate setup, database migrations, deployment configuration |
 
 
 ## Core Features
@@ -60,36 +60,25 @@ The Nanny is a real world solution for pet care services nowadays, because there
 
 Each module follows a three-layer architecture:
 
-Handler Layer (HTTP)
+1. Handler Layer (HTTP)
+2. Service Layer (Business Logic)
+3. Repository Layer (Database)
 
-Service Layer (Business Logic)
-
-Repository Layer (Database)
-
-Database schema
+## Database schema
 
 We used PostgreSQL with 9 interconnected tables:
 
-
 ## Core Entities
 
-users - User accounts (owners, sitters, admins)
-
-pets - Pet profiles owned by users
-
-sitters - Extended sitter profiles with experience and location
-
-services - Services offered by sitters
-
-bookings - Service bookings between owners and sitters
-
-reviews - Ratings and feedback for completed bookings
-
-payments - Payment tracking (future feature)
-
-chats - Chat sessions for bookings
-
-messages - Messages within chats
+1. *users* - User accounts (owners, sitters, admins)
+2. *pets* - Pet profiles owned by users
+3. *sitters* - Extended sitter profiles with experience and location
+4. *services* - Services offered by sitters
+5. *bookings* - Service bookings between owners and sitters
+6. *reviews* - Ratings and feedback for completed bookings
+7. *payments* - Payment tracking (future feature)
+8. *chats* - Chat sessions for bookings
+9. *messages* - Messages within chats
 
 
 # Entity Relationships
@@ -118,19 +107,12 @@ chats (1) -------> (*) messages
 
 ## Background Workers
 
-The application includes a background worker that runs concurrently:
+The application includes a background worker that runs concurrently. **Expired booking cleanup worker** means automatically cancels bookings that remain in "pending" status for more than 24 hours after their scheduled start time.
 
-Expired Booking Cleanup Worker
-
-Automatically cancels bookings that remain in "pending" status for more than 24 hours after their scheduled start time.
-
-Runs every hour
-
-Uses context for graceful cancellation
-
-Logs all operations
-
-Handles database errors gracefully
+1. Runs every hour
+2. Uses context for graceful cancellation
+3. Logs all operations
+4. Handles database errors gracefully
 
 
 ## Docker Deployment
@@ -141,57 +123,44 @@ Handles database errors gracefully
 
 The docker-compose.yml defines two services:
 
-postgres - PostgreSQL 15 database
+**postgres - PostgreSQL 15 database**
 
-Port: 5432
+1. Port: 5432
+2. Auto-initialization with schema.sql
+3. Health checks enabled
+4. Persistent data volume
 
-Auto-initialization with schema.sql
+**backend - Go API server**
 
-Health checks enabled
-
-Persistent data volume
-
-backend - Go API server
-
-Port: 8080
-
-Waits for database to be healthy
-
-Auto-restarts on failure
-
-Multi-stage build for small image size
-
+1. Port: 8080
+2. Waits for database to be healthy
+3. Auto-restarts on failure
+4. Multi-stage build for small image size
 
 ### Project Statistics
 
-Total Lines of Code: app 6,000 lines of Go
-
-Modules: 6 main modules (auth, pets, bookings, reviews, services, admin)
-
-API Endpoints: 38 endpoints
-
-Database Tables: 9 tables with relationships
-
-Test Files: 13 comprehensive test suites
-
-Test Coverage: 90%+
-
-Docker Image Size: app 20MB
+- Total Lines of Code: app 6,000 lines of Go
+- Modules: 6 main modules (auth, pets, bookings, reviews, services, admin)
+- API Endpoints: 38 endpoints
+- Database Tables: 9 tables with relationships
+- Test Files: 13 comprehensive test suites
+- Test Coverage: 90%+
+- Docker Image Size: app 20MB
 
 
 ## Adding a New Module
 
 If you want to add a new module,
 
-Create module directory in internal/
+1. Create module directory in internal/
 
-Implement three layers: handler, service, repository
+2. Implement three layers: handler, service, repository
 
-Define interfaces in service
+3. Define interfaces in service
 
-Add tests for each layer
+4. Add tests for each layer
 
-Register routes in main.go
+5. Register routes in main.go
 
 
 
