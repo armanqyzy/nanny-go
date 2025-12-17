@@ -1,0 +1,3291 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>api: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">nanny-backend/cmd/api/main.go (0.0%)</option>
+				
+				<option value="file1">nanny-backend/internal/admin/handler.go (0.0%)</option>
+				
+				<option value="file2">nanny-backend/internal/admin/repository.go (0.0%)</option>
+				
+				<option value="file3">nanny-backend/internal/admin/service.go (0.0%)</option>
+				
+				<option value="file4">nanny-backend/internal/auth/handler.go (65.9%)</option>
+				
+				<option value="file5">nanny-backend/internal/auth/jwt.go (0.0%)</option>
+				
+				<option value="file6">nanny-backend/internal/auth/repository.go (29.4%)</option>
+				
+				<option value="file7">nanny-backend/internal/auth/service.go (54.5%)</option>
+				
+				<option value="file8">nanny-backend/internal/bookings/handler.go (40.5%)</option>
+				
+				<option value="file9">nanny-backend/internal/bookings/repository.go (81.0%)</option>
+				
+				<option value="file10">nanny-backend/internal/bookings/service.go (90.3%)</option>
+				
+				<option value="file11">nanny-backend/internal/common/database/database.go (0.0%)</option>
+				
+				<option value="file12">nanny-backend/internal/common/middleware/cors.go (0.0%)</option>
+				
+				<option value="file13">nanny-backend/internal/common/middleware/jwt.go (0.0%)</option>
+				
+				<option value="file14">nanny-backend/internal/pets/handler.go (53.9%)</option>
+				
+				<option value="file15">nanny-backend/internal/pets/repository.go (78.8%)</option>
+				
+				<option value="file16">nanny-backend/internal/pets/service.go (94.1%)</option>
+				
+				<option value="file17">nanny-backend/internal/reviews/handler.go (47.1%)</option>
+				
+				<option value="file18">nanny-backend/internal/reviews/repository.go (79.2%)</option>
+				
+				<option value="file19">nanny-backend/internal/reviews/service.go (91.7%)</option>
+				
+				<option value="file20">nanny-backend/internal/services/repository.go (0.0%)</option>
+				
+				<option value="file21">nanny-backend/internal/services/service.go (0.0%)</option>
+				
+				<option value="file22">nanny-backend/pkg/config/config.go (0.0%)</option>
+				
+				<option value="file23">nanny-backend/pkg/validator/validator.go (60.7%)</option>
+				
+				<option value="file24">nanny-backend/scripts/create_hash.go (0.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">no coverage</span>
+				<span class="cov1">low coverage</span>
+				<span class="cov2">*</span>
+				<span class="cov3">*</span>
+				<span class="cov4">*</span>
+				<span class="cov5">*</span>
+				<span class="cov6">*</span>
+				<span class="cov7">*</span>
+				<span class="cov8">*</span>
+				<span class="cov9">*</span>
+				<span class="cov10">high coverage</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package main
+
+import (
+        "fmt"
+        "log"
+        "net/http"
+
+        "github.com/gorilla/mux"
+
+        "nanny-backend/internal/admin"
+        "nanny-backend/internal/auth"
+        "nanny-backend/internal/bookings"
+        "nanny-backend/internal/common/database"
+        "nanny-backend/internal/common/middleware"
+        "nanny-backend/internal/pets"
+        "nanny-backend/internal/reviews"
+        "nanny-backend/internal/services"
+        "nanny-backend/pkg/config"
+)
+
+func main() <span class="cov0" title="0">{
+        cfg := config.Load()
+
+        db, err := database.New(cfg.Database.ConnectionString())
+        if err != nil </span><span class="cov0" title="0">{
+                log.Fatal("❌ Ошибка подключения к БД:", err)
+        }</span>
+        <span class="cov0" title="0">defer db.Close()
+
+        r := mux.NewRouter()
+
+        setupAuthModule(r, db)
+        setupPetsModule(r, db)
+        setupBookingsModule(r, db)
+        setupReviewsModule(r, db)
+        setupServicesModule(r, db)
+        setupAdminModule(r, db)
+
+        addr := fmt.Sprintf(":%s", cfg.Server.Port)
+        fmt.Printf("✅ API server running on http://localhost%s\n", addr)
+        handler := middleware.CORS(r)
+        log.Fatal(http.ListenAndServe(addr, handler))</span>
+}
+
+func setupAuthModule(r *mux.Router, db *database.Database) <span class="cov0" title="0">{
+        repo := auth.NewRepository(db.DB)
+        service := auth.NewService(repo)
+        handler := auth.NewHandler(service)
+
+        r.HandleFunc("/api/auth/register/owner", handler.RegisterOwner).Methods("POST")
+        r.HandleFunc("/api/auth/register/sitter", handler.RegisterSitter).Methods("POST")
+        r.HandleFunc("/api/auth/login", handler.Login).Methods("POST")
+}</span>
+
+func setupPetsModule(r *mux.Router, db *database.Database) <span class="cov0" title="0">{
+        repo := pets.NewRepository(db.DB)
+        service := pets.NewService(repo)
+        handler := pets.NewHandler(service)
+
+        r.Handle("/api/pets",
+                middleware.AuthMiddleware(http.HandlerFunc(handler.CreatePet)),
+        ).Methods("POST")
+
+        r.Handle("/api/pets/{id:[0-9]+}",
+                middleware.AuthMiddleware(http.HandlerFunc(handler.UpdatePet)),
+        ).Methods("PUT")
+
+        r.Handle("/api/pets/{id:[0-9]+}",
+                middleware.AuthMiddleware(http.HandlerFunc(handler.DeletePet)),
+        ).Methods("DELETE")
+
+        r.HandleFunc("/api/pets/{id:[0-9]+}", handler.GetPet).Methods("GET")
+        r.HandleFunc("/api/owners/{owner_id:[0-9]+}/pets", handler.GetOwnerPets).Methods("GET")
+}</span>
+
+func setupBookingsModule(r *mux.Router, db *database.Database) <span class="cov0" title="0">{
+        repo := bookings.NewRepository(db.DB)
+        service := bookings.NewService(repo)
+        handler := bookings.NewHandler(service)
+
+        r.Handle("/api/bookings",
+                middleware.AuthMiddleware(http.HandlerFunc(handler.CreateBooking)),
+        ).Methods("POST")
+
+        r.Handle("/api/bookings/{id:[0-9]+}/confirm",
+                middleware.AuthMiddleware(http.HandlerFunc(handler.ConfirmBooking)),
+        ).Methods("POST")
+
+        r.Handle("/api/bookings/{id:[0-9]+}/cancel",
+                middleware.AuthMiddleware(http.HandlerFunc(handler.CancelBooking)),
+        ).Methods("POST")
+
+        r.Handle("/api/bookings/{id:[0-9]+}/complete",
+                middleware.AuthMiddleware(http.HandlerFunc(handler.CompleteBooking)),
+        ).Methods("POST")
+
+        r.HandleFunc("/api/bookings/{id:[0-9]+}", handler.GetBooking).Methods("GET")
+        r.HandleFunc("/api/owners/{owner_id:[0-9]+}/bookings", handler.GetOwnerBookings).Methods("GET")
+        r.HandleFunc("/api/sitters/{sitter_id:[0-9]+}/bookings", handler.GetSitterBookings).Methods("GET")
+}</span>
+
+func setupReviewsModule(r *mux.Router, db *database.Database) <span class="cov0" title="0">{
+        repo := reviews.NewRepository(db.DB)
+        service := reviews.NewService(repo)
+        handler := reviews.NewHandler(service)
+
+        r.Handle("/api/reviews",
+                middleware.AuthMiddleware(http.HandlerFunc(handler.CreateReview)),
+        ).Methods("POST")
+
+        r.Handle("/api/reviews/{id:[0-9]+}",
+                middleware.AuthMiddleware(http.HandlerFunc(handler.UpdateReview)),
+        ).Methods("PUT")
+
+        r.Handle("/api/reviews/{id:[0-9]+}",
+                middleware.AuthMiddleware(http.HandlerFunc(handler.DeleteReview)),
+        ).Methods("DELETE")
+
+        r.HandleFunc("/api/reviews/{id:[0-9]+}", handler.GetReview).Methods("GET")
+        r.HandleFunc("/api/sitters/{sitter_id:[0-9]+}/reviews", handler.GetSitterReviews).Methods("GET")
+        r.HandleFunc("/api/sitters/{sitter_id:[0-9]+}/rating", handler.GetSitterRating).Methods("GET")
+        r.HandleFunc("/api/bookings/{booking_id:[0-9]+}/review", handler.GetBookingReview).Methods("GET")
+}</span>
+
+func setupServicesModule(r *mux.Router, db *database.Database) <span class="cov0" title="0">{
+        repo := services.NewRepository(db.DB)
+        service := services.NewService(repo)
+        handler := services.NewHandler(service)
+
+        r.HandleFunc("/api/services/search", handler.SearchServices).Methods("GET")
+        r.HandleFunc("/api/sitters/{sitter_id:[0-9]+}/services", handler.GetSitterServices).Methods("GET")
+        r.HandleFunc("/api/services/{id:[0-9]+}", handler.GetService).Methods("GET")
+
+        r.Handle("/api/services",
+                middleware.AuthMiddleware(http.HandlerFunc(handler.CreateService)),
+        ).Methods("POST")
+
+        r.Handle("/api/services/{id:[0-9]+}",
+                middleware.AuthMiddleware(http.HandlerFunc(handler.UpdateService)),
+        ).Methods("PUT")
+
+        r.Handle("/api/services/{id:[0-9]+}",
+                middleware.AuthMiddleware(http.HandlerFunc(handler.DeleteService)),
+        ).Methods("DELETE")
+}</span>
+
+func setupAdminModule(r *mux.Router, db *database.Database) <span class="cov0" title="0">{
+        repo := admin.NewRepository(db.DB)
+        service := admin.NewService(repo)
+        handler := admin.NewHandler(service)
+
+        r.Handle("/api/admin/sitters/pending",
+                middleware.AuthMiddleware(http.HandlerFunc(handler.GetPendingSitters)),
+        ).Methods("GET")
+
+        r.Handle("/api/admin/sitters/{sitter_id:[0-9]+}/approve",
+                middleware.AuthMiddleware(http.HandlerFunc(handler.ApproveSitter)),
+        ).Methods("POST")
+
+        r.Handle("/api/admin/sitters/{sitter_id:[0-9]+}/reject",
+                middleware.AuthMiddleware(http.HandlerFunc(handler.RejectSitter)),
+        ).Methods("POST")
+
+        r.Handle("/api/admin/sitters/{sitter_id:[0-9]+}",
+                middleware.AuthMiddleware(http.HandlerFunc(handler.GetSitterDetails)),
+        ).Methods("GET")
+
+        r.Handle("/api/admin/users",
+                middleware.AuthMiddleware(http.HandlerFunc(handler.GetAllUsers)),
+        ).Methods("GET")
+
+        r.Handle("/api/admin/users/{user_id:[0-9]+}",
+                middleware.AuthMiddleware(http.HandlerFunc(handler.GetUser)),
+        ).Methods("GET")
+
+        r.Handle("/api/admin/users/{user_id:[0-9]+}",
+                middleware.AuthMiddleware(http.HandlerFunc(handler.DeleteUser)),
+        ).Methods("DELETE")
+}</span>
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package admin
+
+import (
+        "encoding/json"
+        "net/http"
+        "strconv"
+
+        "github.com/gorilla/mux"
+)
+
+type Handler struct {
+        service Service
+}
+
+func NewHandler(service Service) *Handler <span class="cov0" title="0">{
+        return &amp;Handler{service: service}
+}</span>
+
+func (h *Handler) GetPendingSitters(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+        sitters, err := h.service.GetPendingSitters()
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusInternalServerError, err.Error())
+                return
+        }</span>
+
+        <span class="cov0" title="0">respondWithJSON(w, http.StatusOK, sitters)</span>
+}
+
+func (h *Handler) ApproveSitter(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+        vars := mux.Vars(r)
+        sitterID, err := strconv.Atoi(vars["sitter_id"])
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверный ID няни")
+                return
+        }</span>
+
+        <span class="cov0" title="0">err = h.service.ApproveSitter(sitterID)
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, err.Error())
+                return
+        }</span>
+
+        <span class="cov0" title="0">respondWithJSON(w, http.StatusOK, map[string]string{
+                "message": "няня одобрена успешно",
+        })</span>
+}
+
+func (h *Handler) RejectSitter(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+        vars := mux.Vars(r)
+        sitterID, err := strconv.Atoi(vars["sitter_id"])
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверный ID няни")
+                return
+        }</span>
+
+        <span class="cov0" title="0">err = h.service.RejectSitter(sitterID)
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, err.Error())
+                return
+        }</span>
+
+        <span class="cov0" title="0">respondWithJSON(w, http.StatusOK, map[string]string{
+                "message": "няня отклонена",
+        })</span>
+}
+
+func (h *Handler) GetAllUsers(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+        users, err := h.service.GetAllUsers()
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusInternalServerError, err.Error())
+                return
+        }</span>
+
+        <span class="cov0" title="0">respondWithJSON(w, http.StatusOK, users)</span>
+}
+
+func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+        vars := mux.Vars(r)
+        userID, err := strconv.Atoi(vars["user_id"])
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверный ID пользователя")
+                return
+        }</span>
+
+        <span class="cov0" title="0">user, err := h.service.GetUser(userID)
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusNotFound, err.Error())
+                return
+        }</span>
+
+        <span class="cov0" title="0">respondWithJSON(w, http.StatusOK, user)</span>
+}
+
+func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+        vars := mux.Vars(r)
+        userID, err := strconv.Atoi(vars["user_id"])
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверный ID пользователя")
+                return
+        }</span>
+
+        <span class="cov0" title="0">err = h.service.DeleteUser(userID)
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusInternalServerError, err.Error())
+                return
+        }</span>
+
+        <span class="cov0" title="0">respondWithJSON(w, http.StatusOK, map[string]string{
+                "message": "пользователь удалён успешно",
+        })</span>
+}
+
+func (h *Handler) GetSitterDetails(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+        vars := mux.Vars(r)
+        sitterID, err := strconv.Atoi(vars["sitter_id"])
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверный ID няни")
+                return
+        }</span>
+
+        <span class="cov0" title="0">details, err := h.service.GetSitterDetails(sitterID)
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusNotFound, err.Error())
+                return
+        }</span>
+
+        <span class="cov0" title="0">respondWithJSON(w, http.StatusOK, details)</span>
+}
+
+func respondWithError(w http.ResponseWriter, code int, message string) <span class="cov0" title="0">{
+        respondWithJSON(w, code, map[string]string{"error": message})
+}</span>
+
+func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) <span class="cov0" title="0">{
+        w.Header().Set("Content-Type", "application/json")
+        w.WriteHeader(code)
+        json.NewEncoder(w).Encode(payload)
+}</span>
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package admin
+
+import (
+        "database/sql"
+        "fmt"
+
+        "nanny-backend/internal/common/models"
+)
+
+type Repository interface {
+        GetPendingSitters() ([]models.Sitter, error)
+        ApproveSitter(sitterID int) error
+        RejectSitter(sitterID int) error
+        GetAllUsers() ([]models.User, error)
+        GetUserByID(userID int) (*models.User, error)
+        DeleteUser(userID int) error
+        GetSitterDetails(sitterID int) (*SitterDetails, error)
+        UpdateSitterStatus(sitterID int, status string) error
+}
+
+type SitterDetails struct {
+        models.Sitter
+        FullName string  `json:"full_name"`
+        Email    string  `json:"email"`
+        Phone    string  `json:"phone"`
+        Rating   float64 `json:"rating"`
+        Reviews  int     `json:"reviews"`
+}
+
+type repository struct {
+        db *sql.DB
+}
+
+func NewRepository(db *sql.DB) Repository <span class="cov0" title="0">{
+        return &amp;repository{db: db}
+}</span>
+
+func (r *repository) GetPendingSitters() ([]models.Sitter, error) <span class="cov0" title="0">{
+        rows, err := r.db.Query(`
+                SELECT sitter_id, experience_years, certificates, preferences, location, status
+                FROM sitters
+                WHERE status = 'pending'
+                ORDER BY sitter_id DESC
+        `)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("ошибка получения заявок: %w", err)
+        }</span>
+        <span class="cov0" title="0">defer rows.Close()
+
+        var sitters []models.Sitter
+        for rows.Next() </span><span class="cov0" title="0">{
+                var sitter models.Sitter
+                err := rows.Scan(
+                        &amp;sitter.SitterID,
+                        &amp;sitter.ExperienceYears,
+                        &amp;sitter.Certificates,
+                        &amp;sitter.Preferences,
+                        &amp;sitter.Location,
+                        &amp;sitter.Status,
+                )
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, fmt.Errorf("ошибка сканирования няни: %w", err)
+                }</span>
+                <span class="cov0" title="0">sitters = append(sitters, sitter)</span>
+        }
+
+        <span class="cov0" title="0">return sitters, nil</span>
+}
+
+func (r *repository) ApproveSitter(sitterID int) error <span class="cov0" title="0">{
+        _, err := r.db.Exec(`
+                UPDATE sitters
+                SET status = 'approved'
+                WHERE sitter_id = $1
+        `, sitterID)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("не удалось одобрить няню: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">return nil</span>
+}
+
+func (r *repository) RejectSitter(sitterID int) error <span class="cov0" title="0">{
+        _, err := r.db.Exec(`
+                UPDATE sitters
+                SET status = 'rejected'
+                WHERE sitter_id = $1
+        `, sitterID)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("не удалось отклонить няню: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">return nil</span>
+}
+
+func (r *repository) GetAllUsers() ([]models.User, error) <span class="cov0" title="0">{
+        rows, err := r.db.Query(`
+                SELECT user_id, full_name, email, phone, role, created_at
+                FROM users
+                ORDER BY created_at DESC
+        `)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("ошибка получения пользователей: %w", err)
+        }</span>
+        <span class="cov0" title="0">defer rows.Close()
+
+        var users []models.User
+        for rows.Next() </span><span class="cov0" title="0">{
+                var user models.User
+                err := rows.Scan(
+                        &amp;user.UserID,
+                        &amp;user.FullName,
+                        &amp;user.Email,
+                        &amp;user.Phone,
+                        &amp;user.Role,
+                        &amp;user.CreatedAt,
+                )
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, fmt.Errorf("ошибка сканирования пользователя: %w", err)
+                }</span>
+                <span class="cov0" title="0">users = append(users, user)</span>
+        }
+
+        <span class="cov0" title="0">return users, nil</span>
+}
+
+func (r *repository) GetUserByID(userID int) (*models.User, error) <span class="cov0" title="0">{
+        user := &amp;models.User{}
+        err := r.db.QueryRow(`
+                SELECT user_id, full_name, email, phone, role, created_at
+                FROM users
+                WHERE user_id = $1
+        `, userID).Scan(
+                &amp;user.UserID,
+                &amp;user.FullName,
+                &amp;user.Email,
+                &amp;user.Phone,
+                &amp;user.Role,
+                &amp;user.CreatedAt,
+        )
+
+        if err == sql.ErrNoRows </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("пользователь не найден")
+        }</span>
+        <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("ошибка получения пользователя: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">return user, nil</span>
+}
+
+func (r *repository) DeleteUser(userID int) error <span class="cov0" title="0">{
+        _, err := r.db.Exec(`DELETE FROM users WHERE user_id = $1`, userID)
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("не удалось удалить пользователя: %w", err)
+        }</span>
+        <span class="cov0" title="0">return nil</span>
+}
+
+func (r *repository) GetSitterDetails(sitterID int) (*SitterDetails, error) <span class="cov0" title="0">{
+        details := &amp;SitterDetails{}
+
+        err := r.db.QueryRow(`
+                SELECT 
+                        s.sitter_id, s.experience_years, s.certificates, s.preferences, s.location, s.status,
+                        u.full_name, u.email, u.phone,
+                        COALESCE(AVG(r.rating), 0) as rating,
+                        COUNT(r.review_id) as reviews
+                FROM sitters s
+                JOIN users u ON s.sitter_id = u.user_id
+                LEFT JOIN reviews r ON s.sitter_id = r.sitter_id
+                WHERE s.sitter_id = $1
+                GROUP BY s.sitter_id, u.full_name, u.email, u.phone
+        `, sitterID).Scan(
+                &amp;details.SitterID,
+                &amp;details.ExperienceYears,
+                &amp;details.Certificates,
+                &amp;details.Preferences,
+                &amp;details.Location,
+                &amp;details.Status,
+                &amp;details.FullName,
+                &amp;details.Email,
+                &amp;details.Phone,
+                &amp;details.Rating,
+                &amp;details.Reviews,
+        )
+
+        if err == sql.ErrNoRows </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("няня не найдена")
+        }</span>
+        <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("ошибка получения деталей няни: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">return details, nil</span>
+}
+
+func (r *repository) UpdateSitterStatus(sitterID int, status string) error <span class="cov0" title="0">{
+        _, err := r.db.Exec(`
+                UPDATE sitters
+                SET status = $1
+                WHERE sitter_id = $2
+        `, status, sitterID)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("не удалось обновить статус няни: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">return nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package admin
+
+import (
+        "fmt"
+
+        "nanny-backend/internal/common/models"
+)
+
+type Service interface {
+        GetPendingSitters() ([]models.Sitter, error)
+        ApproveSitter(sitterID int) error
+        RejectSitter(sitterID int) error
+        GetAllUsers() ([]models.User, error)
+        GetUser(userID int) (*models.User, error)
+        DeleteUser(userID int) error
+        GetSitterDetails(sitterID int) (*SitterDetails, error)
+}
+
+type service struct {
+        repo Repository
+}
+
+func NewService(repo Repository) Service <span class="cov0" title="0">{
+        return &amp;service{repo: repo}
+}</span>
+
+func (s *service) GetPendingSitters() ([]models.Sitter, error) <span class="cov0" title="0">{
+        return s.repo.GetPendingSitters()
+}</span>
+
+func (s *service) ApproveSitter(sitterID int) error <span class="cov0" title="0">{
+        // Проверяем, что няня существует и в статусе pending
+        details, err := s.repo.GetSitterDetails(sitterID)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">if details.Status != "pending" </span><span class="cov0" title="0">{
+                return fmt.Errorf("можно одобрить только заявки в статусе 'pending'")
+        }</span>
+
+        <span class="cov0" title="0">return s.repo.ApproveSitter(sitterID)</span>
+}
+
+func (s *service) RejectSitter(sitterID int) error <span class="cov0" title="0">{
+        // Проверяем, что няня существует и в статусе pending
+        details, err := s.repo.GetSitterDetails(sitterID)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">if details.Status != "pending" </span><span class="cov0" title="0">{
+                return fmt.Errorf("можно отклонить только заявки в статусе 'pending'")
+        }</span>
+
+        <span class="cov0" title="0">return s.repo.RejectSitter(sitterID)</span>
+}
+
+func (s *service) GetAllUsers() ([]models.User, error) <span class="cov0" title="0">{
+        return s.repo.GetAllUsers()
+}</span>
+
+func (s *service) GetUser(userID int) (*models.User, error) <span class="cov0" title="0">{
+        return s.repo.GetUserByID(userID)
+}</span>
+
+func (s *service) DeleteUser(userID int) error <span class="cov0" title="0">{
+        // Проверяем, что пользователь существует
+        _, err := s.repo.GetUserByID(userID)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">return s.repo.DeleteUser(userID)</span>
+}
+
+func (s *service) GetSitterDetails(sitterID int) (*SitterDetails, error) <span class="cov0" title="0">{
+        return s.repo.GetSitterDetails(sitterID)
+}</span>
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package auth
+
+import (
+        "encoding/json"
+        "net/http"
+
+        "nanny-backend/pkg/validator"
+)
+
+type Handler struct {
+        service Service
+}
+
+func NewHandler(service Service) *Handler <span class="cov10" title="5">{
+        return &amp;Handler{service: service}
+}</span>
+
+type RegisterOwnerRequest struct {
+        FullName string `json:"full_name" validate:"required,min=2,max=100"`
+        Email    string `json:"email" validate:"required,email"`
+        Phone    string `json:"phone" validate:"required,phone_kz"`
+        Password string `json:"password" validate:"required,min=8,max=72"`
+}
+
+type RegisterSitterRequest struct {
+        FullName        string `json:"full_name" validate:"required,min=2,max=100"`
+        Email           string `json:"email" validate:"required,email"`
+        Phone           string `json:"phone" validate:"required,phone_kz"`
+        Password        string `json:"password" validate:"required,min=8,max=72"`
+        ExperienceYears int    `json:"experience_years" validate:"required,gte=0,lte=50"`
+        Certificates    string `json:"certificates" validate:"max=500"`
+        Preferences     string `json:"preferences" validate:"max=500"`
+        Location        string `json:"location" validate:"required,min=2,max=200"`
+}
+
+type LoginRequest struct {
+        Email    string `json:"email" validate:"required,email"`
+        Password string `json:"password" validate:"required,min=1"`
+}
+
+func (h *Handler) RegisterOwner(w http.ResponseWriter, r *http.Request) <span class="cov4" title="2">{
+        var req RegisterOwnerRequest
+        if err := json.NewDecoder(r.Body).Decode(&amp;req); err != nil </span><span class="cov1" title="1">{
+                respondWithError(w, http.StatusBadRequest, "неверные данные")
+                return
+        }</span>
+
+        <span class="cov1" title="1">if err := validator.Validate(&amp;req); err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, err.Error())
+                return
+        }</span>
+
+        <span class="cov1" title="1">err := h.service.RegisterOwner(req.FullName, req.Email, req.Phone, req.Password)
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, err.Error())
+                return
+        }</span>
+
+        <span class="cov1" title="1">respondWithJSON(w, http.StatusCreated, map[string]string{
+                "message": "владелец зарегистрирован успешно",
+        })</span>
+}
+
+func (h *Handler) RegisterSitter(w http.ResponseWriter, r *http.Request) <span class="cov1" title="1">{
+        var req RegisterSitterRequest
+        if err := json.NewDecoder(r.Body).Decode(&amp;req); err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверные данные")
+                return
+        }</span>
+
+        <span class="cov1" title="1">if err := validator.Validate(&amp;req); err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, err.Error())
+                return
+        }</span>
+
+        <span class="cov1" title="1">err := h.service.RegisterSitter(
+                req.FullName,
+                req.Email,
+                req.Phone,
+                req.Password,
+                req.ExperienceYears,
+                req.Certificates,
+                req.Preferences,
+                req.Location,
+        )
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, err.Error())
+                return
+        }</span>
+
+        <span class="cov1" title="1">respondWithJSON(w, http.StatusCreated, map[string]string{
+                "message": "няня зарегистрирована, ожидает подтверждения",
+        })</span>
+}
+
+func (h *Handler) Login(w http.ResponseWriter, r *http.Request) <span class="cov4" title="2">{
+        var req LoginRequest
+        if err := json.NewDecoder(r.Body).Decode(&amp;req); err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверные данные")
+                return
+        }</span>
+
+        <span class="cov4" title="2">if err := validator.Validate(&amp;req); err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, err.Error())
+                return
+        }</span>
+
+        <span class="cov4" title="2">user, token, err := h.service.Login(req.Email, req.Password)
+        if err != nil </span><span class="cov1" title="1">{
+                respondWithError(w, http.StatusUnauthorized, err.Error())
+                return
+        }</span>
+
+        <span class="cov1" title="1">respondWithJSON(w, http.StatusOK, map[string]interface{}{
+                "message":   "вход выполнен",
+                "user_id":   user.UserID,
+                "role":      user.Role,
+                "email":     user.Email,
+                "full_name": user.FullName,
+                "token":     token,
+        })</span>
+}
+
+func respondWithError(w http.ResponseWriter, code int, message string) <span class="cov4" title="2">{
+        respondWithJSON(w, code, map[string]string{"error": message})
+}</span>
+
+func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) <span class="cov10" title="5">{
+        w.Header().Set("Content-Type", "application/json")
+        w.WriteHeader(code)
+        json.NewEncoder(w).Encode(payload)
+}</span>
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package auth
+
+import (
+        "time"
+
+        "nanny-backend/internal/common/models"
+        "nanny-backend/pkg/config"
+
+        "github.com/golang-jwt/jwt/v5"
+)
+
+type JWTClaims struct {
+        UserID int    `json:"user_id"`
+        Role   string `json:"role"`
+        Email  string `json:"email"`
+        jwt.RegisteredClaims
+}
+
+// GenerateJWT генерирует JWT-токен для пользователя
+func GenerateJWT(user *models.User) (string, error) <span class="cov0" title="0">{
+        cfg := config.Load()
+        secret := []byte(cfg.JWTSecret)
+
+        claims := JWTClaims{
+                UserID: user.UserID,
+                Role:   user.Role,
+                Email:  user.Email,
+                RegisteredClaims: jwt.RegisteredClaims{
+                        ExpiresAt: jwt.NewNumericDate(time.Now().Add(72 * time.Hour)), // токен на 3 дня
+                        IssuedAt:  jwt.NewNumericDate(time.Now()),
+                },
+        }
+
+        token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+        return token.SignedString(secret)
+}</span>
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">package auth
+
+import (
+        "database/sql"
+        "fmt"
+
+        "nanny-backend/internal/common/models"
+)
+
+type Repository interface {
+        CreateUser(user *models.User) (int, error)
+        GetUserByEmail(email string) (*models.User, error)
+        CreateSitter(sitter *models.Sitter) error
+}
+
+type repository struct {
+        db *sql.DB
+}
+
+func NewRepository(db *sql.DB) Repository <span class="cov0" title="0">{
+        return &amp;repository{db: db}
+}</span>
+
+func (r *repository) CreateUser(user *models.User) (int, error) <span class="cov0" title="0">{
+        var userID int
+        err := r.db.QueryRow(`
+                INSERT INTO users (full_name, email, phone, password_hash, role)
+                VALUES ($1, $2, $3, $4, $5)
+                RETURNING user_id
+        `, user.FullName, user.Email, user.Phone, user.PasswordHash, user.Role).Scan(&amp;userID)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return 0, fmt.Errorf("не удалось создать пользователя: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">return userID, nil</span>
+}
+
+func (r *repository) GetUserByEmail(email string) (*models.User, error) <span class="cov8" title="1">{
+        user := &amp;models.User{}
+        err := r.db.QueryRow(`
+                SELECT user_id, full_name, email, phone, password_hash, role, created_at
+                FROM users
+                WHERE email = $1
+        `, email).Scan(
+                &amp;user.UserID,
+                &amp;user.FullName,
+                &amp;user.Email,
+                &amp;user.Phone,
+                &amp;user.PasswordHash,
+                &amp;user.Role,
+                &amp;user.CreatedAt,
+        )
+
+        if err == sql.ErrNoRows </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("пользователь не найден")
+        }</span>
+        <span class="cov8" title="1">if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("ошибка получения пользователя: %w", err)
+        }</span>
+
+        <span class="cov8" title="1">return user, nil</span>
+}
+
+func (r *repository) CreateSitter(sitter *models.Sitter) error <span class="cov0" title="0">{
+        _, err := r.db.Exec(`
+                INSERT INTO sitters (sitter_id, experience_years, certificates, preferences, location, status)
+                VALUES ($1, $2, $3, $4, $5, $6)
+        `, sitter.SitterID, sitter.ExperienceYears, sitter.Certificates, sitter.Preferences, sitter.Location, sitter.Status)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("не удалось создать профиль няни: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">return nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file7" style="display: none">package auth
+
+import (
+        "fmt"
+        "time"
+
+        "nanny-backend/internal/common/models"
+        "nanny-backend/pkg/config"
+
+        "github.com/golang-jwt/jwt/v5"
+        "golang.org/x/crypto/bcrypt"
+)
+
+type Service interface {
+        RegisterOwner(fullName, email, phone, password string) error
+        RegisterSitter(fullName, email, phone, password string, experienceYears int, certificates, preferences, location string) error
+        Login(email, password string) (*models.User, string, error) // ← token added
+}
+
+type service struct {
+        repo      Repository
+        jwtSecret string
+}
+
+func NewService(repo Repository) Service <span class="cov10" title="4">{
+        cfg := config.Load()
+
+        return &amp;service{
+                repo:      repo,
+                jwtSecret: cfg.JWTSecret,
+        }
+}</span>
+
+func (s *service) RegisterOwner(fullName, email, phone, password string) error <span class="cov5" title="2">{
+        hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("ошибка хеширования пароля: %w", err)
+        }</span>
+
+        <span class="cov5" title="2">user := &amp;models.User{
+                FullName:     fullName,
+                Email:        email,
+                Phone:        phone,
+                PasswordHash: string(hashedPassword),
+                Role:         "owner",
+        }
+
+        _, err = s.repo.CreateUser(user)
+        if err != nil </span><span class="cov1" title="1">{
+                return fmt.Errorf("ошибка регистрации владельца: %w", err)
+        }</span>
+
+        <span class="cov1" title="1">return nil</span>
+}
+
+func (s *service) RegisterSitter(fullName, email, phone, password string, experienceYears int, certificates, preferences, location string) error <span class="cov0" title="0">{
+        hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("ошибка хеширования пароля: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">user := &amp;models.User{
+                FullName:     fullName,
+                Email:        email,
+                Phone:        phone,
+                PasswordHash: string(hashedPassword),
+                Role:         "sitter",
+        }
+
+        userID, err := s.repo.CreateUser(user)
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("ошибка создания пользователя: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">sitter := &amp;models.Sitter{
+                SitterID:        userID,
+                ExperienceYears: experienceYears,
+                Certificates:    certificates,
+                Preferences:     preferences,
+                Location:        location,
+                Status:          "pending",
+        }
+
+        err = s.repo.CreateSitter(sitter)
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("ошибка создания профиля няни: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">return nil</span>
+}
+
+func (s *service) Login(email, password string) (*models.User, string, error) <span class="cov5" title="2">{
+        user, err := s.repo.GetUserByEmail(email)
+        if err != nil </span><span class="cov1" title="1">{
+                return nil, "", fmt.Errorf("неверный email или пароль")
+        }</span>
+
+        <span class="cov1" title="1">err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, "", fmt.Errorf("неверный email или пароль")
+        }</span>
+
+        <span class="cov1" title="1">token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+                "user_id": user.UserID,
+                "role":    user.Role,
+                "exp":     time.Now().Add(time.Hour * 72).Unix(), // токен живёт 72 часа
+        })
+
+        signedToken, err := token.SignedString([]byte(s.jwtSecret))
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, "", fmt.Errorf("ошибка генерации токена: %w", err)
+        }</span>
+
+        <span class="cov1" title="1">return user, signedToken, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file8" style="display: none">package bookings
+
+import (
+        "encoding/json"
+        "net/http"
+        "strconv"
+        "time"
+
+        "nanny-backend/pkg/validator"
+
+        "github.com/gorilla/mux"
+)
+
+type Handler struct {
+        service Service
+}
+
+func NewHandler(service Service) *Handler <span class="cov10" title="5">{
+        return &amp;Handler{service: service}
+}</span>
+
+type CreateBookingRequest struct {
+        OwnerID   int    `json:"owner_id" validate:"required,gt=0"`
+        SitterID  int    `json:"sitter_id" validate:"required,gt=0"`
+        PetID     int    `json:"pet_id" validate:"required,gt=0"`
+        ServiceID int    `json:"service_id" validate:"required,gt=0"`
+        StartTime string `json:"start_time" validate:"required"` // ISO 8601 format
+        EndTime   string `json:"end_time" validate:"required"`   // ISO 8601 format
+}
+
+func (h *Handler) CreateBooking(w http.ResponseWriter, r *http.Request) <span class="cov1" title="1">{
+        var req CreateBookingRequest
+        if err := json.NewDecoder(r.Body).Decode(&amp;req); err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверные данные")
+                return
+        }</span>
+
+        <span class="cov1" title="1">if err := validator.Validate(&amp;req); err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, err.Error())
+                return
+        }</span>
+
+        <span class="cov1" title="1">startTime, err := time.Parse(time.RFC3339, req.StartTime)
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверный формат времени начала (используйте ISO 8601)")
+                return
+        }</span>
+
+        <span class="cov1" title="1">endTime, err := time.Parse(time.RFC3339, req.EndTime)
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверный формат времени окончания (используйте ISO 8601)")
+                return
+        }</span>
+
+        <span class="cov1" title="1">if endTime.Before(startTime) </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "время окончания должно быть позже времени начала")
+                return
+        }</span>
+
+        <span class="cov1" title="1">if startTime.Before(time.Now()) </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "время начала не может быть в прошлом")
+                return
+        }</span>
+
+        <span class="cov1" title="1">duration := endTime.Sub(startTime)
+        if duration.Hours() &gt; 24 </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "максимальная длительность бронирования - 24 часа")
+                return
+        }</span>
+
+        <span class="cov1" title="1">if duration.Minutes() &lt; 30 </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "минимальная длительность бронирования - 30 минут")
+                return
+        }</span>
+
+        <span class="cov1" title="1">bookingID, err := h.service.CreateBooking(
+                req.OwnerID,
+                req.SitterID,
+                req.PetID,
+                req.ServiceID,
+                startTime,
+                endTime,
+        )
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, err.Error())
+                return
+        }</span>
+
+        <span class="cov1" title="1">respondWithJSON(w, http.StatusCreated, map[string]interface{}{
+                "message":    "бронирование создано успешно",
+                "booking_id": bookingID,
+        })</span>
+}
+
+func (h *Handler) GetBooking(w http.ResponseWriter, r *http.Request) <span class="cov1" title="1">{
+        vars := mux.Vars(r)
+        bookingID, err := strconv.Atoi(vars["id"])
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверный ID бронирования")
+                return
+        }</span>
+
+        <span class="cov1" title="1">if bookingID &lt;= 0 </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "ID бронирования должен быть положительным числом")
+                return
+        }</span>
+
+        <span class="cov1" title="1">booking, err := h.service.GetBookingByID(bookingID)
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusNotFound, err.Error())
+                return
+        }</span>
+
+        <span class="cov1" title="1">respondWithJSON(w, http.StatusOK, booking)</span>
+}
+
+func (h *Handler) GetOwnerBookings(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+        vars := mux.Vars(r)
+        ownerID, err := strconv.Atoi(vars["owner_id"])
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверный ID владельца")
+                return
+        }</span>
+
+        <span class="cov0" title="0">if ownerID &lt;= 0 </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "ID владельца должен быть положительным числом")
+                return
+        }</span>
+
+        <span class="cov0" title="0">bookings, err := h.service.GetOwnerBookings(ownerID)
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusInternalServerError, err.Error())
+                return
+        }</span>
+
+        <span class="cov0" title="0">respondWithJSON(w, http.StatusOK, bookings)</span>
+}
+
+func (h *Handler) GetSitterBookings(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+        vars := mux.Vars(r)
+        sitterID, err := strconv.Atoi(vars["sitter_id"])
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверный ID няни")
+                return
+        }</span>
+
+        <span class="cov0" title="0">if sitterID &lt;= 0 </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "ID няни должен быть положительным числом")
+                return
+        }</span>
+
+        <span class="cov0" title="0">bookings, err := h.service.GetSitterBookings(sitterID)
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusInternalServerError, err.Error())
+                return
+        }</span>
+
+        <span class="cov0" title="0">respondWithJSON(w, http.StatusOK, bookings)</span>
+}
+
+func (h *Handler) ConfirmBooking(w http.ResponseWriter, r *http.Request) <span class="cov1" title="1">{
+        vars := mux.Vars(r)
+        bookingID, err := strconv.Atoi(vars["id"])
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверный ID бронирования")
+                return
+        }</span>
+
+        <span class="cov1" title="1">if bookingID &lt;= 0 </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "ID бронирования должен быть положительным числом")
+                return
+        }</span>
+
+        <span class="cov1" title="1">err = h.service.ConfirmBooking(bookingID)
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, err.Error())
+                return
+        }</span>
+
+        <span class="cov1" title="1">respondWithJSON(w, http.StatusOK, map[string]string{
+                "message": "бронирование подтверждено",
+        })</span>
+}
+
+func (h *Handler) CancelBooking(w http.ResponseWriter, r *http.Request) <span class="cov1" title="1">{
+        vars := mux.Vars(r)
+        bookingID, err := strconv.Atoi(vars["id"])
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверный ID бронирования")
+                return
+        }</span>
+
+        <span class="cov1" title="1">if bookingID &lt;= 0 </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "ID бронирования должен быть положительным числом")
+                return
+        }</span>
+
+        <span class="cov1" title="1">err = h.service.CancelBooking(bookingID)
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, err.Error())
+                return
+        }</span>
+
+        <span class="cov1" title="1">respondWithJSON(w, http.StatusOK, map[string]string{
+                "message": "бронирование отменено",
+        })</span>
+}
+
+func (h *Handler) CompleteBooking(w http.ResponseWriter, r *http.Request) <span class="cov1" title="1">{
+        vars := mux.Vars(r)
+        bookingID, err := strconv.Atoi(vars["id"])
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверный ID бронирования")
+                return
+        }</span>
+
+        <span class="cov1" title="1">if bookingID &lt;= 0 </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "ID бронирования должен быть положительным числом")
+                return
+        }</span>
+
+        <span class="cov1" title="1">err = h.service.CompleteBooking(bookingID)
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, err.Error())
+                return
+        }</span>
+
+        <span class="cov1" title="1">respondWithJSON(w, http.StatusOK, map[string]string{
+                "message": "бронирование завершено",
+        })</span>
+}
+
+func respondWithError(w http.ResponseWriter, code int, message string) <span class="cov0" title="0">{
+        respondWithJSON(w, code, map[string]string{"error": message})
+}</span>
+
+func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) <span class="cov10" title="5">{
+        w.Header().Set("Content-Type", "application/json")
+        w.WriteHeader(code)
+        json.NewEncoder(w).Encode(payload)
+}</span>
+</pre>
+		
+		<pre class="file" id="file9" style="display: none">package bookings
+
+import (
+        "database/sql"
+        "fmt"
+        "time"
+
+        "nanny-backend/internal/common/models"
+)
+
+type Repository interface {
+        Create(booking *models.Booking) (int, error)
+        GetByID(bookingID int) (*models.Booking, error)
+        GetByOwnerID(ownerID int) ([]models.Booking, error)
+        GetBySitterID(sitterID int) ([]models.Booking, error)
+        UpdateStatus(bookingID int, status string) error
+        Delete(bookingID int) error
+}
+
+type repository struct {
+        db *sql.DB
+}
+
+func NewRepository(db *sql.DB) Repository <span class="cov0" title="0">{
+        return &amp;repository{db: db}
+}</span>
+
+func (r *repository) Create(booking *models.Booking) (int, error) <span class="cov1" title="1">{
+        var bookingID int
+        err := r.db.QueryRow(`
+                INSERT INTO bookings (owner_id, sitter_id, pet_id, service_id, start_time, end_time, status)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                RETURNING booking_id
+        `, booking.OwnerID, booking.SitterID, booking.PetID, booking.ServiceID,
+                booking.StartTime, booking.EndTime, booking.Status).Scan(&amp;bookingID)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return 0, fmt.Errorf("не удалось создать бронирование: %w", err)
+        }</span>
+
+        <span class="cov1" title="1">return bookingID, nil</span>
+}
+
+func (r *repository) GetByID(bookingID int) (*models.Booking, error) <span class="cov6" title="2">{
+        booking := &amp;models.Booking{}
+        err := r.db.QueryRow(`
+                SELECT booking_id, owner_id, sitter_id, pet_id, service_id, start_time, end_time, status
+                FROM bookings
+                WHERE booking_id = $1
+        `, bookingID).Scan(
+                &amp;booking.BookingID,
+                &amp;booking.OwnerID,
+                &amp;booking.SitterID,
+                &amp;booking.PetID,
+                &amp;booking.ServiceID,
+                &amp;booking.StartTime,
+                &amp;booking.EndTime,
+                &amp;booking.Status,
+        )
+
+        if err == sql.ErrNoRows </span><span class="cov1" title="1">{
+                return nil, fmt.Errorf("бронирование не найдено")
+        }</span>
+        <span class="cov1" title="1">if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("ошибка получения бронирования: %w", err)
+        }</span>
+
+        <span class="cov1" title="1">return booking, nil</span>
+}
+
+func (r *repository) GetByOwnerID(ownerID int) ([]models.Booking, error) <span class="cov1" title="1">{
+        rows, err := r.db.Query(`
+                SELECT booking_id, owner_id, sitter_id, pet_id, service_id, start_time, end_time, status
+                FROM bookings
+                WHERE owner_id = $1
+                ORDER BY start_time DESC
+        `, ownerID)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("ошибка получения бронирований: %w", err)
+        }</span>
+        <span class="cov1" title="1">defer rows.Close()
+
+        return scanBookings(rows)</span>
+}
+
+func (r *repository) GetBySitterID(sitterID int) ([]models.Booking, error) <span class="cov1" title="1">{
+        rows, err := r.db.Query(`
+                SELECT booking_id, owner_id, sitter_id, pet_id, service_id, start_time, end_time, status
+                FROM bookings
+                WHERE sitter_id = $1
+                ORDER BY start_time DESC
+        `, sitterID)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("ошибка получения бронирований: %w", err)
+        }</span>
+        <span class="cov1" title="1">defer rows.Close()
+
+        return scanBookings(rows)</span>
+}
+
+func (r *repository) UpdateStatus(bookingID int, status string) error <span class="cov1" title="1">{
+        _, err := r.db.Exec(`
+                UPDATE bookings
+                SET status = $1
+                WHERE booking_id = $2
+        `, status, bookingID)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("не удалось обновить статус бронирования: %w", err)
+        }</span>
+
+        <span class="cov1" title="1">return nil</span>
+}
+
+func (r *repository) Delete(bookingID int) error <span class="cov1" title="1">{
+        _, err := r.db.Exec(`DELETE FROM bookings WHERE booking_id = $1`, bookingID)
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("не удалось удалить бронирование: %w", err)
+        }</span>
+        <span class="cov1" title="1">return nil</span>
+}
+
+func scanBookings(rows *sql.Rows) ([]models.Booking, error) <span class="cov6" title="2">{
+        var bookings []models.Booking
+        for rows.Next() </span><span class="cov10" title="3">{
+                var booking models.Booking
+                var startTime, endTime time.Time
+
+                err := rows.Scan(
+                        &amp;booking.BookingID,
+                        &amp;booking.OwnerID,
+                        &amp;booking.SitterID,
+                        &amp;booking.PetID,
+                        &amp;booking.ServiceID,
+                        &amp;startTime,
+                        &amp;endTime,
+                        &amp;booking.Status,
+                )
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, fmt.Errorf("ошибка сканирования бронирования: %w", err)
+                }</span>
+
+                <span class="cov10" title="3">booking.StartTime = startTime
+                booking.EndTime = endTime
+                bookings = append(bookings, booking)</span>
+        }
+
+        <span class="cov6" title="2">return bookings, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file10" style="display: none">package bookings
+
+import (
+        "fmt"
+        "time"
+
+        "nanny-backend/internal/common/models"
+)
+
+type Service interface {
+        CreateBooking(ownerID, sitterID, petID, serviceID int, startTime, endTime time.Time) (int, error)
+        GetBookingByID(bookingID int) (*models.Booking, error)
+        GetOwnerBookings(ownerID int) ([]models.Booking, error)
+        GetSitterBookings(sitterID int) ([]models.Booking, error)
+        ConfirmBooking(bookingID int) error
+        CancelBooking(bookingID int) error
+        CompleteBooking(bookingID int) error
+}
+
+type service struct {
+        repo Repository
+}
+
+func NewService(repo Repository) Service <span class="cov10" title="14">{
+        return &amp;service{repo: repo}
+}</span>
+
+func (s *service) CreateBooking(ownerID, sitterID, petID, serviceID int, startTime, endTime time.Time) (int, error) <span class="cov5" title="4">{
+
+        if startTime.After(endTime) </span><span class="cov1" title="1">{
+                return 0, fmt.Errorf("время начала не может быть позже времени окончания")
+        }</span>
+
+        <span class="cov4" title="3">if startTime.Before(time.Now()) </span><span class="cov1" title="1">{
+                return 0, fmt.Errorf("нельзя создать бронирование в прошлом")
+        }</span>
+
+        <span class="cov3" title="2">booking := &amp;models.Booking{
+                OwnerID:   ownerID,
+                SitterID:  sitterID,
+                PetID:     petID,
+                ServiceID: serviceID,
+                StartTime: startTime,
+                EndTime:   endTime,
+                Status:    "pending",
+        }
+
+        bookingID, err := s.repo.Create(booking)
+        if err != nil </span><span class="cov1" title="1">{
+                return 0, fmt.Errorf("ошибка создания бронирования: %w", err)
+        }</span>
+
+        <span class="cov1" title="1">return bookingID, nil</span>
+}
+
+func (s *service) GetBookingByID(bookingID int) (*models.Booking, error) <span class="cov3" title="2">{
+        return s.repo.GetByID(bookingID)
+}</span>
+
+func (s *service) GetOwnerBookings(ownerID int) ([]models.Booking, error) <span class="cov1" title="1">{
+        return s.repo.GetByOwnerID(ownerID)
+}</span>
+
+func (s *service) GetSitterBookings(sitterID int) ([]models.Booking, error) <span class="cov1" title="1">{
+        return s.repo.GetBySitterID(sitterID)
+}</span>
+
+func (s *service) ConfirmBooking(bookingID int) error <span class="cov3" title="2">{
+
+        booking, err := s.repo.GetByID(bookingID)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov3" title="2">if booking.Status != "pending" </span><span class="cov1" title="1">{
+                return fmt.Errorf("можно подтвердить только бронирование со статусом 'pending'")
+        }</span>
+
+        <span class="cov1" title="1">return s.repo.UpdateStatus(bookingID, "confirmed")</span>
+}
+
+func (s *service) CancelBooking(bookingID int) error <span class="cov3" title="2">{
+        booking, err := s.repo.GetByID(bookingID)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov3" title="2">if booking.Status == "completed" </span><span class="cov1" title="1">{
+                return fmt.Errorf("нельзя отменить завершённое бронирование")
+        }</span>
+
+        <span class="cov1" title="1">return s.repo.UpdateStatus(bookingID, "cancelled")</span>
+}
+
+func (s *service) CompleteBooking(bookingID int) error <span class="cov3" title="2">{
+        booking, err := s.repo.GetByID(bookingID)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov3" title="2">if booking.Status != "confirmed" </span><span class="cov1" title="1">{
+                return fmt.Errorf("можно завершить только подтверждённое бронирование")
+        }</span>
+
+        <span class="cov1" title="1">return s.repo.UpdateStatus(bookingID, "completed")</span>
+}
+</pre>
+		
+		<pre class="file" id="file11" style="display: none">package database
+
+import (
+        "database/sql"
+        "fmt"
+        "log"
+
+        _ "github.com/lib/pq"
+)
+
+type Database struct {
+        DB *sql.DB
+}
+
+func New(connStr string) (*Database, error) <span class="cov0" title="0">{
+        db, err := sql.Open("postgres", connStr)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("ошибка открытия БД: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">if err := db.Ping(); err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("не удалось подключиться к БД: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">var count int
+        err = db.QueryRow("SELECT COUNT(*) FROM users").Scan(&amp;count)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Printf("⚠️ Предупреждение: таблица users может быть недоступна: %v", err)
+        }</span> else<span class="cov0" title="0"> {
+                log.Printf("✅ Подключено к БД. В таблице users: %d записей", count)
+        }</span>
+
+        <span class="cov0" title="0">return &amp;Database{DB: db}, nil</span>
+}
+
+func (d *Database) Close() error <span class="cov0" title="0">{
+        return d.DB.Close()
+}</span>
+</pre>
+		
+		<pre class="file" id="file12" style="display: none">package middleware
+
+import "net/http"
+
+func CORS(next http.Handler) http.Handler <span class="cov0" title="0">{
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) </span><span class="cov0" title="0">{
+                w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+                w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+                w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+                w.Header().Set("Access-Control-Allow-Credentials", "true")
+
+                if r.Method == http.MethodOptions </span><span class="cov0" title="0">{
+                        w.WriteHeader(http.StatusNoContent)
+                        return
+                }</span>
+
+                <span class="cov0" title="0">next.ServeHTTP(w, r)</span>
+        })
+}
+</pre>
+		
+		<pre class="file" id="file13" style="display: none">package middleware
+
+import (
+        "context"
+        "fmt"
+        "net/http"
+        "strings"
+
+        "nanny-backend/pkg/config"
+
+        "github.com/golang-jwt/jwt/v5"
+)
+
+type contextKey string
+
+const (
+        UserIDKey   contextKey = "user_id"
+        UserRoleKey contextKey = "user_role"
+)
+
+func AuthMiddleware(next http.Handler) http.Handler <span class="cov0" title="0">{
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) </span><span class="cov0" title="0">{
+
+                if !strings.HasPrefix(r.URL.Path, "/api/") </span><span class="cov0" title="0">{
+                        next.ServeHTTP(w, r)
+                        return
+                }</span>
+
+                <span class="cov0" title="0">if strings.HasPrefix(r.URL.Path, "/api/auth/") </span><span class="cov0" title="0">{
+                        next.ServeHTTP(w, r)
+                        return
+                }</span>
+
+                <span class="cov0" title="0">authHeader := r.Header.Get("Authorization")
+                if !strings.HasPrefix(authHeader, "Bearer ") </span><span class="cov0" title="0">{
+                        http.Error(w, "missing or invalid Authorization header", http.StatusUnauthorized)
+                        return
+                }</span>
+
+                <span class="cov0" title="0">tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+
+                cfg := config.Load()
+
+                token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) </span><span class="cov0" title="0">{
+                        if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok </span><span class="cov0" title="0">{
+                                return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+                        }</span>
+                        <span class="cov0" title="0">return []byte(cfg.JWTSecret), nil</span>
+                })
+
+                <span class="cov0" title="0">if err != nil || !token.Valid </span><span class="cov0" title="0">{
+                        http.Error(w, "invalid token", http.StatusUnauthorized)
+                        return
+                }</span>
+
+                <span class="cov0" title="0">claims, ok := token.Claims.(jwt.MapClaims)
+                if !ok </span><span class="cov0" title="0">{
+                        http.Error(w, "invalid token claims", http.StatusUnauthorized)
+                        return
+                }</span>
+
+                <span class="cov0" title="0">var userID int
+                if v, ok := claims["user_id"].(float64); ok </span><span class="cov0" title="0">{
+                        userID = int(v)
+                }</span>
+
+                <span class="cov0" title="0">role, _ := claims["role"].(string)
+
+                ctx := context.WithValue(r.Context(), UserIDKey, userID)
+                ctx = context.WithValue(ctx, UserRoleKey, role)
+
+                next.ServeHTTP(w, r.WithContext(ctx))</span>
+        })
+}
+</pre>
+		
+		<pre class="file" id="file14" style="display: none">package pets
+
+import (
+        "encoding/json"
+        "net/http"
+        "strconv"
+
+        "nanny-backend/pkg/validator"
+
+        "github.com/gorilla/mux"
+)
+
+type Handler struct {
+        service Service
+}
+
+func NewHandler(service Service) *Handler <span class="cov10" title="5">{
+        return &amp;Handler{service: service}
+}</span>
+
+type CreatePetRequest struct {
+        OwnerID int    `json:"owner_id" validate:"required,gt=0"`
+        Name    string `json:"name" validate:"required,min=1,max=100"`
+        Type    string `json:"type" validate:"required,pet_type"`
+        Age     int    `json:"age" validate:"required,gte=0,lte=30"`
+        Notes   string `json:"notes,omitempty" validate:"max=500"`
+}
+
+type UpdatePetRequest struct {
+        Name  string `json:"name" validate:"required,min=1,max=100"`
+        Type  string `json:"type" validate:"required,pet_type"`
+        Age   int    `json:"age" validate:"required,gte=0,lte=30"`
+        Notes string `json:"notes,omitempty" validate:"max=500"`
+}
+
+func (h *Handler) CreatePet(w http.ResponseWriter, r *http.Request) <span class="cov1" title="1">{
+        var req CreatePetRequest
+        if err := json.NewDecoder(r.Body).Decode(&amp;req); err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверные данные")
+                return
+        }</span>
+
+        <span class="cov1" title="1">if err := validator.Validate(&amp;req); err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, err.Error())
+                return
+        }</span>
+
+        <span class="cov1" title="1">petID, err := h.service.CreatePet(req.OwnerID, req.Name, req.Type, req.Age, req.Notes)
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, err.Error())
+                return
+        }</span>
+
+        <span class="cov1" title="1">respondWithJSON(w, http.StatusCreated, map[string]interface{}{
+                "message": "питомец создан успешно",
+                "pet_id":  petID,
+        })</span>
+}
+
+func (h *Handler) GetPet(w http.ResponseWriter, r *http.Request) <span class="cov1" title="1">{
+        vars := mux.Vars(r)
+        petID, err := strconv.Atoi(vars["id"])
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверный ID питомца")
+                return
+        }</span>
+
+        <span class="cov1" title="1">if petID &lt;= 0 </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "ID питомца должен быть положительным числом")
+                return
+        }</span>
+
+        <span class="cov1" title="1">pet, err := h.service.GetPetByID(petID)
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusNotFound, err.Error())
+                return
+        }</span>
+
+        <span class="cov1" title="1">respondWithJSON(w, http.StatusOK, pet)</span>
+}
+
+func (h *Handler) GetOwnerPets(w http.ResponseWriter, r *http.Request) <span class="cov1" title="1">{
+        vars := mux.Vars(r)
+        ownerID, err := strconv.Atoi(vars["owner_id"])
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверный ID владельца")
+                return
+        }</span>
+
+        <span class="cov1" title="1">if ownerID &lt;= 0 </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "ID владельца должен быть положительным числом")
+                return
+        }</span>
+
+        <span class="cov1" title="1">pets, err := h.service.GetPetsByOwner(ownerID)
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusInternalServerError, err.Error())
+                return
+        }</span>
+
+        <span class="cov1" title="1">respondWithJSON(w, http.StatusOK, pets)</span>
+}
+
+func (h *Handler) UpdatePet(w http.ResponseWriter, r *http.Request) <span class="cov1" title="1">{
+        vars := mux.Vars(r)
+        petID, err := strconv.Atoi(vars["id"])
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверный ID питомца")
+                return
+        }</span>
+
+        <span class="cov1" title="1">if petID &lt;= 0 </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "ID питомца должен быть положительным числом")
+                return
+        }</span>
+
+        <span class="cov1" title="1">var req UpdatePetRequest
+        if err := json.NewDecoder(r.Body).Decode(&amp;req); err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверные данные")
+                return
+        }</span>
+
+        <span class="cov1" title="1">if err := validator.Validate(&amp;req); err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, err.Error())
+                return
+        }</span>
+
+        <span class="cov1" title="1">err = h.service.UpdatePet(petID, req.Name, req.Type, req.Age, req.Notes)
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, err.Error())
+                return
+        }</span>
+
+        <span class="cov1" title="1">respondWithJSON(w, http.StatusOK, map[string]string{
+                "message": "питомец обновлён успешно",
+        })</span>
+}
+
+func (h *Handler) DeletePet(w http.ResponseWriter, r *http.Request) <span class="cov1" title="1">{
+        vars := mux.Vars(r)
+        petID, err := strconv.Atoi(vars["id"])
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверный ID питомца")
+                return
+        }</span>
+
+        <span class="cov1" title="1">if petID &lt;= 0 </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "ID питомца должен быть положительным числом")
+                return
+        }</span>
+
+        <span class="cov1" title="1">err = h.service.DeletePet(petID)
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusInternalServerError, err.Error())
+                return
+        }</span>
+
+        <span class="cov1" title="1">respondWithJSON(w, http.StatusOK, map[string]string{
+                "message": "питомец удалён успешно",
+        })</span>
+}
+
+func respondWithError(w http.ResponseWriter, code int, message string) <span class="cov0" title="0">{
+        respondWithJSON(w, code, map[string]string{"error": message})
+}</span>
+
+func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) <span class="cov10" title="5">{
+        w.Header().Set("Content-Type", "application/json")
+        w.WriteHeader(code)
+        json.NewEncoder(w).Encode(payload)
+}</span>
+</pre>
+		
+		<pre class="file" id="file15" style="display: none">package pets
+
+import (
+        "database/sql"
+        "fmt"
+
+        "nanny-backend/internal/common/models"
+)
+
+type Repository interface {
+        Create(pet *models.Pet) (int, error)
+        GetByID(petID int) (*models.Pet, error)
+        GetByOwnerID(ownerID int) ([]models.Pet, error)
+        Update(pet *models.Pet) error
+        Delete(petID int) error
+}
+
+type repository struct {
+        db *sql.DB
+}
+
+func NewRepository(db *sql.DB) Repository <span class="cov0" title="0">{
+        return &amp;repository{db: db}
+}</span>
+
+func (r *repository) Create(pet *models.Pet) (int, error) <span class="cov1" title="1">{
+        var petID int
+        err := r.db.QueryRow(`
+                INSERT INTO pets (owner_id, name, type, age, notes)
+                VALUES ($1, $2, $3, $4, $5)
+                RETURNING pet_id
+        `, pet.OwnerID, pet.Name, pet.Type, pet.Age, pet.Notes).Scan(&amp;petID)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return 0, fmt.Errorf("не удалось создать питомца: %w", err)
+        }</span>
+
+        <span class="cov1" title="1">return petID, nil</span>
+}
+
+func (r *repository) GetByID(petID int) (*models.Pet, error) <span class="cov10" title="2">{
+        pet := &amp;models.Pet{}
+        err := r.db.QueryRow(`
+                SELECT pet_id, owner_id, name, type, age, notes
+                FROM pets
+                WHERE pet_id = $1
+        `, petID).Scan(
+                &amp;pet.PetID,
+                &amp;pet.OwnerID,
+                &amp;pet.Name,
+                &amp;pet.Type,
+                &amp;pet.Age,
+                &amp;pet.Notes,
+        )
+
+        if err == sql.ErrNoRows </span><span class="cov1" title="1">{
+                return nil, fmt.Errorf("питомец не найден")
+        }</span>
+        <span class="cov1" title="1">if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("ошибка получения питомца: %w", err)
+        }</span>
+
+        <span class="cov1" title="1">return pet, nil</span>
+}
+
+func (r *repository) GetByOwnerID(ownerID int) ([]models.Pet, error) <span class="cov1" title="1">{
+        rows, err := r.db.Query(`
+                SELECT pet_id, owner_id, name, type, age, notes
+                FROM pets
+                WHERE owner_id = $1
+        `, ownerID)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("ошибка получения питомцев: %w", err)
+        }</span>
+        <span class="cov1" title="1">defer rows.Close()
+
+        var pets []models.Pet
+        for rows.Next() </span><span class="cov10" title="2">{
+                var pet models.Pet
+                err := rows.Scan(
+                        &amp;pet.PetID,
+                        &amp;pet.OwnerID,
+                        &amp;pet.Name,
+                        &amp;pet.Type,
+                        &amp;pet.Age,
+                        &amp;pet.Notes,
+                )
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, fmt.Errorf("ошибка сканирования питомца: %w", err)
+                }</span>
+                <span class="cov10" title="2">pets = append(pets, pet)</span>
+        }
+
+        <span class="cov1" title="1">return pets, nil</span>
+}
+
+func (r *repository) Update(pet *models.Pet) error <span class="cov1" title="1">{
+        _, err := r.db.Exec(`
+                UPDATE pets
+                SET name = $1, type = $2, age = $3, notes = $4
+                WHERE pet_id = $5
+        `, pet.Name, pet.Type, pet.Age, pet.Notes, pet.PetID)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("не удалось обновить питомца: %w", err)
+        }</span>
+
+        <span class="cov1" title="1">return nil</span>
+}
+
+func (r *repository) Delete(petID int) error <span class="cov1" title="1">{
+        _, err := r.db.Exec(`DELETE FROM pets WHERE pet_id = $1`, petID)
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("не удалось удалить питомца: %w", err)
+        }</span>
+        <span class="cov1" title="1">return nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file16" style="display: none">package pets
+
+import (
+        "fmt"
+
+        "nanny-backend/internal/common/models"
+)
+
+type Service interface {
+        CreatePet(ownerID int, name, petType string, age int, notes string) (int, error)
+        GetPetByID(petID int) (*models.Pet, error)
+        GetPetsByOwner(ownerID int) ([]models.Pet, error)
+        UpdatePet(petID int, name, petType string, age int, notes string) error
+        DeletePet(petID int) error
+}
+
+type service struct {
+        repo Repository
+}
+
+func NewService(repo Repository) Service <span class="cov10" title="8">{
+        return &amp;service{repo: repo}
+}</span>
+
+func (s *service) CreatePet(ownerID int, name, petType string, age int, notes string) (int, error) <span class="cov4" title="2">{
+        validTypes := map[string]bool{"cat": true, "dog": true, "rodent": true}
+        if !validTypes[petType] </span><span class="cov1" title="1">{
+                return 0, fmt.Errorf("неверный тип питомца. Допустимые значения: cat, dog, rodent")
+        }</span>
+
+        <span class="cov1" title="1">pet := &amp;models.Pet{
+                OwnerID: ownerID,
+                Name:    name,
+                Type:    petType,
+                Age:     age,
+                Notes:   notes,
+        }
+
+        petID, err := s.repo.Create(pet)
+        if err != nil </span><span class="cov0" title="0">{
+                return 0, fmt.Errorf("ошибка создания питомца: %w", err)
+        }</span>
+
+        <span class="cov1" title="1">return petID, nil</span>
+}
+
+func (s *service) GetPetByID(petID int) (*models.Pet, error) <span class="cov4" title="2">{
+        return s.repo.GetByID(petID)
+}</span>
+
+func (s *service) GetPetsByOwner(ownerID int) ([]models.Pet, error) <span class="cov1" title="1">{
+        return s.repo.GetByOwnerID(ownerID)
+}</span>
+
+func (s *service) UpdatePet(petID int, name, petType string, age int, notes string) error <span class="cov4" title="2">{
+        validTypes := map[string]bool{"cat": true, "dog": true, "rodent": true}
+        if !validTypes[petType] </span><span class="cov1" title="1">{
+                return fmt.Errorf("неверный тип питомца. Допустимые значения: cat, dog, rodent")
+        }</span>
+
+        <span class="cov1" title="1">pet := &amp;models.Pet{
+                PetID: petID,
+                Name:  name,
+                Type:  petType,
+                Age:   age,
+                Notes: notes,
+        }
+
+        return s.repo.Update(pet)</span>
+}
+
+func (s *service) DeletePet(petID int) error <span class="cov1" title="1">{
+        return s.repo.Delete(petID)
+}</span>
+</pre>
+		
+		<pre class="file" id="file17" style="display: none">package reviews
+
+import (
+        "encoding/json"
+        "net/http"
+        "strconv"
+
+        "nanny-backend/pkg/validator"
+
+        "github.com/gorilla/mux"
+)
+
+type Handler struct {
+        service Service
+}
+
+func NewHandler(service Service) *Handler <span class="cov10" title="6">{
+        return &amp;Handler{service: service}
+}</span>
+
+type CreateReviewRequest struct {
+        BookingID int    `json:"booking_id" validate:"required,gt=0"`
+        OwnerID   int    `json:"owner_id" validate:"required,gt=0"`
+        SitterID  int    `json:"sitter_id" validate:"required,gt=0"`
+        Rating    int    `json:"rating" validate:"required,gte=1,lte=5"`
+        Comment   string `json:"comment,omitempty" validate:"max=1000"`
+}
+
+type UpdateReviewRequest struct {
+        Rating  int    `json:"rating" validate:"required,gte=1,lte=5"`
+        Comment string `json:"comment,omitempty" validate:"max=1000"`
+}
+
+func (h *Handler) CreateReview(w http.ResponseWriter, r *http.Request) <span class="cov1" title="1">{
+        var req CreateReviewRequest
+        if err := json.NewDecoder(r.Body).Decode(&amp;req); err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверные данные")
+                return
+        }</span>
+
+        <span class="cov1" title="1">if err := validator.Validate(&amp;req); err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, err.Error())
+                return
+        }</span>
+
+        <span class="cov1" title="1">reviewID, err := h.service.CreateReview(
+                req.BookingID,
+                req.OwnerID,
+                req.SitterID,
+                req.Rating,
+                req.Comment,
+        )
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, err.Error())
+                return
+        }</span>
+
+        <span class="cov1" title="1">respondWithJSON(w, http.StatusCreated, map[string]interface{}{
+                "message":   "отзыв создан успешно",
+                "review_id": reviewID,
+        })</span>
+}
+
+func (h *Handler) GetReview(w http.ResponseWriter, r *http.Request) <span class="cov1" title="1">{
+        vars := mux.Vars(r)
+        reviewID, err := strconv.Atoi(vars["id"])
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверный ID отзыва")
+                return
+        }</span>
+
+        <span class="cov1" title="1">if reviewID &lt;= 0 </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "ID отзыва должен быть положительным числом")
+                return
+        }</span>
+
+        <span class="cov1" title="1">review, err := h.service.GetReview(reviewID)
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusNotFound, err.Error())
+                return
+        }</span>
+
+        <span class="cov1" title="1">respondWithJSON(w, http.StatusOK, review)</span>
+}
+
+func (h *Handler) GetSitterReviews(w http.ResponseWriter, r *http.Request) <span class="cov1" title="1">{
+        vars := mux.Vars(r)
+        sitterID, err := strconv.Atoi(vars["sitter_id"])
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверный ID няни")
+                return
+        }</span>
+
+        <span class="cov1" title="1">if sitterID &lt;= 0 </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "ID няни должен быть положительным числом")
+                return
+        }</span>
+
+        <span class="cov1" title="1">reviews, err := h.service.GetSitterReviews(sitterID)
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusInternalServerError, err.Error())
+                return
+        }</span>
+
+        <span class="cov1" title="1">respondWithJSON(w, http.StatusOK, reviews)</span>
+}
+
+func (h *Handler) GetSitterRating(w http.ResponseWriter, r *http.Request) <span class="cov1" title="1">{
+        vars := mux.Vars(r)
+        sitterID, err := strconv.Atoi(vars["sitter_id"])
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверный ID няни")
+                return
+        }</span>
+
+        <span class="cov1" title="1">if sitterID &lt;= 0 </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "ID няни должен быть положительным числом")
+                return
+        }</span>
+
+        <span class="cov1" title="1">avgRating, count, err := h.service.GetSitterRating(sitterID)
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusInternalServerError, err.Error())
+                return
+        }</span>
+
+        <span class="cov1" title="1">respondWithJSON(w, http.StatusOK, map[string]interface{}{
+                "sitter_id":      sitterID,
+                "average_rating": avgRating,
+                "review_count":   count,
+        })</span>
+}
+
+func (h *Handler) GetBookingReview(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+        vars := mux.Vars(r)
+        bookingID, err := strconv.Atoi(vars["booking_id"])
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверный ID бронирования")
+                return
+        }</span>
+
+        <span class="cov0" title="0">if bookingID &lt;= 0 </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "ID бронирования должен быть положительным числом")
+                return
+        }</span>
+
+        <span class="cov0" title="0">review, err := h.service.GetBookingReview(bookingID)
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusNotFound, err.Error())
+                return
+        }</span>
+
+        <span class="cov0" title="0">respondWithJSON(w, http.StatusOK, review)</span>
+}
+
+func (h *Handler) UpdateReview(w http.ResponseWriter, r *http.Request) <span class="cov1" title="1">{
+        vars := mux.Vars(r)
+        reviewID, err := strconv.Atoi(vars["id"])
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверный ID отзыва")
+                return
+        }</span>
+
+        <span class="cov1" title="1">if reviewID &lt;= 0 </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "ID отзыва должен быть положительным числом")
+                return
+        }</span>
+
+        <span class="cov1" title="1">var req UpdateReviewRequest
+        if err := json.NewDecoder(r.Body).Decode(&amp;req); err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверные данные")
+                return
+        }</span>
+
+        <span class="cov1" title="1">if err := validator.Validate(&amp;req); err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, err.Error())
+                return
+        }</span>
+
+        <span class="cov1" title="1">err = h.service.UpdateReview(reviewID, req.Rating, req.Comment)
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, err.Error())
+                return
+        }</span>
+
+        <span class="cov1" title="1">respondWithJSON(w, http.StatusOK, map[string]string{
+                "message": "отзыв обновлён успешно",
+        })</span>
+}
+
+func (h *Handler) DeleteReview(w http.ResponseWriter, r *http.Request) <span class="cov1" title="1">{
+        vars := mux.Vars(r)
+        reviewID, err := strconv.Atoi(vars["id"])
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверный ID отзыва")
+                return
+        }</span>
+
+        <span class="cov1" title="1">if reviewID &lt;= 0 </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "ID отзыва должен быть положительным числом")
+                return
+        }</span>
+
+        <span class="cov1" title="1">err = h.service.DeleteReview(reviewID)
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusInternalServerError, err.Error())
+                return
+        }</span>
+
+        <span class="cov1" title="1">respondWithJSON(w, http.StatusOK, map[string]string{
+                "message": "отзыв удалён успешно",
+        })</span>
+}
+
+func respondWithError(w http.ResponseWriter, code int, message string) <span class="cov0" title="0">{
+        respondWithJSON(w, code, map[string]string{"error": message})
+}</span>
+
+func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) <span class="cov10" title="6">{
+        w.Header().Set("Content-Type", "application/json")
+        w.WriteHeader(code)
+        json.NewEncoder(w).Encode(payload)
+}</span>
+</pre>
+		
+		<pre class="file" id="file18" style="display: none">package reviews
+
+import (
+        "database/sql"
+        "fmt"
+
+        "nanny-backend/internal/common/models"
+)
+
+type Repository interface {
+        Create(review *models.Review) (int, error)
+        GetByID(reviewID int) (*models.Review, error)
+        GetBySitterID(sitterID int) ([]models.Review, error)
+        GetByBookingID(bookingID int) (*models.Review, error)
+        Update(review *models.Review) error
+        Delete(reviewID int) error
+        GetSitterRating(sitterID int) (float64, int, error)
+}
+
+type repository struct {
+        db *sql.DB
+}
+
+func NewRepository(db *sql.DB) Repository <span class="cov0" title="0">{
+        return &amp;repository{db: db}
+}</span>
+
+func (r *repository) Create(review *models.Review) (int, error) <span class="cov1" title="1">{
+        var reviewID int
+        err := r.db.QueryRow(`
+                INSERT INTO reviews (booking_id, owner_id, sitter_id, rating, comment)
+                VALUES ($1, $2, $3, $4, $5)
+                RETURNING review_id
+        `, review.BookingID, review.OwnerID, review.SitterID, review.Rating, review.Comment).Scan(&amp;reviewID)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return 0, fmt.Errorf("не удалось создать отзыв: %w", err)
+        }</span>
+
+        <span class="cov1" title="1">return reviewID, nil</span>
+}
+
+func (r *repository) GetByID(reviewID int) (*models.Review, error) <span class="cov10" title="2">{
+        review := &amp;models.Review{}
+        err := r.db.QueryRow(`
+                SELECT review_id, booking_id, owner_id, sitter_id, rating, comment, created_at
+                FROM reviews
+                WHERE review_id = $1
+        `, reviewID).Scan(
+                &amp;review.ReviewID,
+                &amp;review.BookingID,
+                &amp;review.OwnerID,
+                &amp;review.SitterID,
+                &amp;review.Rating,
+                &amp;review.Comment,
+                &amp;review.CreatedAt,
+        )
+
+        if err == sql.ErrNoRows </span><span class="cov1" title="1">{
+                return nil, fmt.Errorf("отзыв не найден")
+        }</span>
+        <span class="cov1" title="1">if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("ошибка получения отзыва: %w", err)
+        }</span>
+
+        <span class="cov1" title="1">return review, nil</span>
+}
+
+func (r *repository) GetBySitterID(sitterID int) ([]models.Review, error) <span class="cov1" title="1">{
+        rows, err := r.db.Query(`
+                SELECT review_id, booking_id, owner_id, sitter_id, rating, comment, created_at
+                FROM reviews
+                WHERE sitter_id = $1
+                ORDER BY created_at DESC
+        `, sitterID)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("ошибка получения отзывов: %w", err)
+        }</span>
+        <span class="cov1" title="1">defer rows.Close()
+
+        var reviews []models.Review
+        for rows.Next() </span><span class="cov10" title="2">{
+                var review models.Review
+                err := rows.Scan(
+                        &amp;review.ReviewID,
+                        &amp;review.BookingID,
+                        &amp;review.OwnerID,
+                        &amp;review.SitterID,
+                        &amp;review.Rating,
+                        &amp;review.Comment,
+                        &amp;review.CreatedAt,
+                )
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, fmt.Errorf("ошибка сканирования отзыва: %w", err)
+                }</span>
+                <span class="cov10" title="2">reviews = append(reviews, review)</span>
+        }
+
+        <span class="cov1" title="1">return reviews, nil</span>
+}
+
+func (r *repository) GetByBookingID(bookingID int) (*models.Review, error) <span class="cov1" title="1">{
+        review := &amp;models.Review{}
+        err := r.db.QueryRow(`
+                SELECT review_id, booking_id, owner_id, sitter_id, rating, comment, created_at
+                FROM reviews
+                WHERE booking_id = $1
+        `, bookingID).Scan(
+                &amp;review.ReviewID,
+                &amp;review.BookingID,
+                &amp;review.OwnerID,
+                &amp;review.SitterID,
+                &amp;review.Rating,
+                &amp;review.Comment,
+                &amp;review.CreatedAt,
+        )
+
+        if err == sql.ErrNoRows </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("отзыв не найден")
+        }</span>
+        <span class="cov1" title="1">if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("ошибка получения отзыва: %w", err)
+        }</span>
+
+        <span class="cov1" title="1">return review, nil</span>
+}
+
+func (r *repository) Update(review *models.Review) error <span class="cov1" title="1">{
+        _, err := r.db.Exec(`
+                UPDATE reviews
+                SET rating = $1, comment = $2
+                WHERE review_id = $3
+        `, review.Rating, review.Comment, review.ReviewID)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("не удалось обновить отзыв: %w", err)
+        }</span>
+
+        <span class="cov1" title="1">return nil</span>
+}
+
+func (r *repository) Delete(reviewID int) error <span class="cov1" title="1">{
+        _, err := r.db.Exec(`DELETE FROM reviews WHERE review_id = $1`, reviewID)
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("не удалось удалить отзыв: %w", err)
+        }</span>
+        <span class="cov1" title="1">return nil</span>
+}
+
+func (r *repository) GetSitterRating(sitterID int) (float64, int, error) <span class="cov10" title="2">{
+        var avgRating sql.NullFloat64
+        var count int
+
+        err := r.db.QueryRow(`
+                SELECT AVG(rating), COUNT(*)
+                FROM reviews
+                WHERE sitter_id = $1
+        `, sitterID).Scan(&amp;avgRating, &amp;count)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return 0, 0, fmt.Errorf("ошибка расчёта рейтинга: %w", err)
+        }</span>
+
+        <span class="cov10" title="2">if !avgRating.Valid </span><span class="cov1" title="1">{
+                return 0, 0, nil
+        }</span>
+
+        <span class="cov1" title="1">return avgRating.Float64, count, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file19" style="display: none">package reviews
+
+import (
+        "fmt"
+
+        "nanny-backend/internal/common/models"
+)
+
+type Service interface {
+        CreateReview(bookingID, ownerID, sitterID, rating int, comment string) (int, error)
+        GetReview(reviewID int) (*models.Review, error)
+        GetSitterReviews(sitterID int) ([]models.Review, error)
+        GetBookingReview(bookingID int) (*models.Review, error)
+        UpdateReview(reviewID, rating int, comment string) error
+        DeleteReview(reviewID int) error
+        GetSitterRating(sitterID int) (float64, int, error)
+}
+
+type service struct {
+        repo Repository
+}
+
+func NewService(repo Repository) Service <span class="cov10" title="10">{
+        return &amp;service{repo: repo}
+}</span>
+
+func (s *service) CreateReview(bookingID, ownerID, sitterID, rating int, comment string) (int, error) <span class="cov5" title="3">{
+        if rating &lt; 1 || rating &gt; 5 </span><span class="cov1" title="1">{
+                return 0, fmt.Errorf("рейтинг должен быть от 1 до 5")
+        }</span>
+
+        <span class="cov3" title="2">existing, _ := s.repo.GetByBookingID(bookingID)
+        if existing != nil </span><span class="cov1" title="1">{
+                return 0, fmt.Errorf("отзыв на это бронирование уже существует")
+        }</span>
+
+        <span class="cov1" title="1">review := &amp;models.Review{
+                BookingID: bookingID,
+                OwnerID:   ownerID,
+                SitterID:  sitterID,
+                Rating:    rating,
+                Comment:   comment,
+        }
+
+        reviewID, err := s.repo.Create(review)
+        if err != nil </span><span class="cov0" title="0">{
+                return 0, fmt.Errorf("ошибка создания отзыва: %w", err)
+        }</span>
+
+        <span class="cov1" title="1">return reviewID, nil</span>
+}
+
+func (s *service) GetReview(reviewID int) (*models.Review, error) <span class="cov1" title="1">{
+        return s.repo.GetByID(reviewID)
+}</span>
+
+func (s *service) GetSitterReviews(sitterID int) ([]models.Review, error) <span class="cov1" title="1">{
+        return s.repo.GetBySitterID(sitterID)
+}</span>
+
+func (s *service) GetBookingReview(bookingID int) (*models.Review, error) <span class="cov1" title="1">{
+        return s.repo.GetByBookingID(bookingID)
+}</span>
+
+func (s *service) UpdateReview(reviewID, rating int, comment string) error <span class="cov3" title="2">{
+        if rating &lt; 1 || rating &gt; 5 </span><span class="cov1" title="1">{
+                return fmt.Errorf("рейтинг должен быть от 1 до 5")
+        }</span>
+
+        <span class="cov1" title="1">review, err := s.repo.GetByID(reviewID)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov1" title="1">review.Rating = rating
+        review.Comment = comment
+
+        return s.repo.Update(review)</span>
+}
+
+func (s *service) DeleteReview(reviewID int) error <span class="cov1" title="1">{
+        return s.repo.Delete(reviewID)
+}</span>
+
+func (s *service) GetSitterRating(sitterID int) (float64, int, error) <span class="cov1" title="1">{
+        return s.repo.GetSitterRating(sitterID)
+}</span>
+</pre>
+		
+		<pre class="file" id="file20" style="display: none">package services
+
+import (
+        "database/sql"
+        "fmt"
+
+        "nanny-backend/internal/common/models"
+)
+
+type Repository interface {
+        Create(service *models.Service) (int, error)
+        GetByID(serviceID int) (*models.Service, error)
+        GetBySitterID(sitterID int) ([]models.Service, error)
+        Update(service *models.Service) error
+        Delete(serviceID int) error
+        SearchServices(serviceType, location string) ([]ServiceWithSitter, error)
+}
+
+type ServiceWithSitter struct {
+        models.Service
+        SitterName   string  `json:"sitter_name"`
+        SitterRating float64 `json:"sitter_rating"`
+}
+
+type repository struct {
+        db *sql.DB
+}
+
+func NewRepository(db *sql.DB) Repository <span class="cov0" title="0">{
+        return &amp;repository{db: db}
+}</span>
+
+func (r *repository) Create(service *models.Service) (int, error) <span class="cov0" title="0">{
+        var serviceID int
+        err := r.db.QueryRow(`
+                INSERT INTO services (sitter_id, type, price_per_hour, description)
+                VALUES ($1, $2, $3, $4)
+                RETURNING service_id
+        `, service.SitterID, service.Type, service.PricePerHour, service.Description).Scan(&amp;serviceID)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return 0, fmt.Errorf("не удалось создать услугу: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">return serviceID, nil</span>
+}
+
+func (r *repository) GetByID(serviceID int) (*models.Service, error) <span class="cov0" title="0">{
+        service := &amp;models.Service{}
+        err := r.db.QueryRow(`
+                SELECT service_id, sitter_id, type, price_per_hour, description
+                FROM services
+                WHERE service_id = $1
+        `, serviceID).Scan(
+                &amp;service.ServiceID,
+                &amp;service.SitterID,
+                &amp;service.Type,
+                &amp;service.PricePerHour,
+                &amp;service.Description,
+        )
+
+        if err == sql.ErrNoRows </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("услуга не найдена")
+        }</span>
+        <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("ошибка получения услуги: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">return service, nil</span>
+}
+
+func (r *repository) GetBySitterID(sitterID int) ([]models.Service, error) <span class="cov0" title="0">{
+        rows, err := r.db.Query(`
+                SELECT service_id, sitter_id, type, price_per_hour, description
+                FROM services
+                WHERE sitter_id = $1
+        `, sitterID)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("ошибка получения услуг: %w", err)
+        }</span>
+        <span class="cov0" title="0">defer rows.Close()
+
+        var services []models.Service
+        for rows.Next() </span><span class="cov0" title="0">{
+                var service models.Service
+                err := rows.Scan(
+                        &amp;service.ServiceID,
+                        &amp;service.SitterID,
+                        &amp;service.Type,
+                        &amp;service.PricePerHour,
+                        &amp;service.Description,
+                )
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, fmt.Errorf("ошибка сканирования услуги: %w", err)
+                }</span>
+                <span class="cov0" title="0">services = append(services, service)</span>
+        }
+
+        <span class="cov0" title="0">return services, nil</span>
+}
+
+func (r *repository) Update(service *models.Service) error <span class="cov0" title="0">{
+        _, err := r.db.Exec(`
+                UPDATE services
+                SET type = $1, price_per_hour = $2, description = $3
+                WHERE service_id = $4
+        `, service.Type, service.PricePerHour, service.Description, service.ServiceID)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("не удалось обновить услугу: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">return nil</span>
+}
+
+func (r *repository) Delete(serviceID int) error <span class="cov0" title="0">{
+        _, err := r.db.Exec(`DELETE FROM services WHERE service_id = $1`, serviceID)
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("не удалось удалить услугу: %w", err)
+        }</span>
+        <span class="cov0" title="0">return nil</span>
+}
+
+func (r *repository) SearchServices(serviceType, location string) ([]ServiceWithSitter, error) <span class="cov0" title="0">{
+        query := `
+                SELECT 
+                        s.service_id, s.sitter_id, s.type, s.price_per_hour, s.description,
+                        u.full_name as sitter_name,
+                        COALESCE(AVG(r.rating), 0) as sitter_rating
+                FROM services s
+                JOIN sitters st ON s.sitter_id = st.sitter_id
+                JOIN users u ON st.sitter_id = u.user_id
+                LEFT JOIN reviews r ON st.sitter_id = r.sitter_id
+                WHERE st.status = 'approved'
+        `
+
+        args := []interface{}{}
+        argCount := 1
+
+        if serviceType != "" </span><span class="cov0" title="0">{
+                query += fmt.Sprintf(" AND s.type = $%d", argCount)
+                args = append(args, serviceType)
+                argCount++
+        }</span>
+
+        <span class="cov0" title="0">if location != "" </span><span class="cov0" title="0">{
+                query += fmt.Sprintf(" AND st.location ILIKE $%d", argCount)
+                args = append(args, "%"+location+"%")
+        }</span>
+
+        <span class="cov0" title="0">query += " GROUP BY s.service_id, u.full_name ORDER BY sitter_rating DESC"
+
+        rows, err := r.db.Query(query, args...)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("ошибка поиска услуг: %w", err)
+        }</span>
+        <span class="cov0" title="0">defer rows.Close()
+
+        var services []ServiceWithSitter
+        for rows.Next() </span><span class="cov0" title="0">{
+                var service ServiceWithSitter
+                err := rows.Scan(
+                        &amp;service.ServiceID,
+                        &amp;service.SitterID,
+                        &amp;service.Type,
+                        &amp;service.PricePerHour,
+                        &amp;service.Description,
+                        &amp;service.SitterName,
+                        &amp;service.SitterRating,
+                )
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, fmt.Errorf("ошибка сканирования услуги: %w", err)
+                }</span>
+                <span class="cov0" title="0">services = append(services, service)</span>
+        }
+
+        <span class="cov0" title="0">return services, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file21" style="display: none">package services
+
+import (
+        "encoding/json"
+        "fmt"
+        "net/http"
+        "strconv"
+
+        "nanny-backend/internal/common/models"
+
+        "github.com/gorilla/mux"
+)
+
+type Service interface {
+        CreateService(sitterID int, serviceType string, pricePerHour float64, description string) (int, error)
+        GetService(serviceID int) (*models.Service, error)
+        GetSitterServices(sitterID int) ([]models.Service, error)
+        UpdateService(serviceID int, serviceType string, pricePerHour float64, description string) error
+        DeleteService(serviceID int) error
+        SearchServices(serviceType, location string) ([]ServiceWithSitter, error)
+}
+
+type service struct {
+        repo Repository
+}
+
+func NewService(repo Repository) Service <span class="cov0" title="0">{
+        return &amp;service{repo: repo}
+}</span>
+
+func (s *service) CreateService(sitterID int, serviceType string, pricePerHour float64, description string) (int, error) <span class="cov0" title="0">{
+        validTypes := map[string]bool{"walking": true, "boarding": true, "home-care": true}
+        if !validTypes[serviceType] </span><span class="cov0" title="0">{
+                return 0, fmt.Errorf("неверный тип услуги. Допустимые значения: walking, boarding, home-care")
+        }</span>
+
+        <span class="cov0" title="0">if pricePerHour &lt;= 0 </span><span class="cov0" title="0">{
+                return 0, fmt.Errorf("цена должна быть больше 0")
+        }</span>
+
+        <span class="cov0" title="0">srv := &amp;models.Service{
+                SitterID:     sitterID,
+                Type:         serviceType,
+                PricePerHour: pricePerHour,
+                Description:  description,
+        }
+
+        serviceID, err := s.repo.Create(srv)
+        if err != nil </span><span class="cov0" title="0">{
+                return 0, fmt.Errorf("ошибка создания услуги: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">return serviceID, nil</span>
+}
+
+func (s *service) GetService(serviceID int) (*models.Service, error) <span class="cov0" title="0">{
+        return s.repo.GetByID(serviceID)
+}</span>
+
+func (s *service) GetSitterServices(sitterID int) ([]models.Service, error) <span class="cov0" title="0">{
+        return s.repo.GetBySitterID(sitterID)
+}</span>
+
+func (s *service) UpdateService(serviceID int, serviceType string, pricePerHour float64, description string) error <span class="cov0" title="0">{
+        validTypes := map[string]bool{"walking": true, "boarding": true, "home-care": true}
+        if !validTypes[serviceType] </span><span class="cov0" title="0">{
+                return fmt.Errorf("неверный тип услуги. Допустимые значения: walking, boarding, home-care")
+        }</span>
+
+        <span class="cov0" title="0">if pricePerHour &lt;= 0 </span><span class="cov0" title="0">{
+                return fmt.Errorf("цена должна быть больше 0")
+        }</span>
+
+        <span class="cov0" title="0">srv := &amp;models.Service{
+                ServiceID:    serviceID,
+                Type:         serviceType,
+                PricePerHour: pricePerHour,
+                Description:  description,
+        }
+
+        return s.repo.Update(srv)</span>
+}
+
+func (s *service) DeleteService(serviceID int) error <span class="cov0" title="0">{
+        return s.repo.Delete(serviceID)
+}</span>
+
+func (s *service) SearchServices(serviceType, location string) ([]ServiceWithSitter, error) <span class="cov0" title="0">{
+        return s.repo.SearchServices(serviceType, location)
+}</span>
+
+type Handler struct {
+        service Service
+}
+
+func NewHandler(service Service) *Handler <span class="cov0" title="0">{
+        return &amp;Handler{service: service}
+}</span>
+
+type CreateServiceRequest struct {
+        SitterID     int     `json:"sitter_id"`
+        Type         string  `json:"type"`
+        PricePerHour float64 `json:"price_per_hour"`
+        Description  string  `json:"description,omitempty"`
+}
+
+type UpdateServiceRequest struct {
+        Type         string  `json:"type"`
+        PricePerHour float64 `json:"price_per_hour"`
+        Description  string  `json:"description,omitempty"`
+}
+
+func (h *Handler) CreateService(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+        var req CreateServiceRequest
+        if err := json.NewDecoder(r.Body).Decode(&amp;req); err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверные данные")
+                return
+        }</span>
+
+        <span class="cov0" title="0">serviceID, err := h.service.CreateService(req.SitterID, req.Type, req.PricePerHour, req.Description)
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, err.Error())
+                return
+        }</span>
+
+        <span class="cov0" title="0">respondWithJSON(w, http.StatusCreated, map[string]interface{}{
+                "message":    "услуга создана успешно",
+                "service_id": serviceID,
+        })</span>
+}
+
+func (h *Handler) GetService(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+        vars := mux.Vars(r)
+        serviceID, err := strconv.Atoi(vars["id"])
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверный ID услуги")
+                return
+        }</span>
+
+        <span class="cov0" title="0">service, err := h.service.GetService(serviceID)
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusNotFound, err.Error())
+                return
+        }</span>
+
+        <span class="cov0" title="0">respondWithJSON(w, http.StatusOK, service)</span>
+}
+
+func (h *Handler) GetSitterServices(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+        vars := mux.Vars(r)
+        sitterID, err := strconv.Atoi(vars["sitter_id"])
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверный ID няни")
+                return
+        }</span>
+
+        <span class="cov0" title="0">services, err := h.service.GetSitterServices(sitterID)
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusInternalServerError, err.Error())
+                return
+        }</span>
+
+        <span class="cov0" title="0">respondWithJSON(w, http.StatusOK, services)</span>
+}
+
+func (h *Handler) UpdateService(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+        vars := mux.Vars(r)
+        serviceID, err := strconv.Atoi(vars["id"])
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверный ID услуги")
+                return
+        }</span>
+
+        <span class="cov0" title="0">var req UpdateServiceRequest
+        if err := json.NewDecoder(r.Body).Decode(&amp;req); err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверные данные")
+                return
+        }</span>
+
+        <span class="cov0" title="0">err = h.service.UpdateService(serviceID, req.Type, req.PricePerHour, req.Description)
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, err.Error())
+                return
+        }</span>
+
+        <span class="cov0" title="0">respondWithJSON(w, http.StatusOK, map[string]string{
+                "message": "услуга обновлена успешно",
+        })</span>
+}
+
+func (h *Handler) DeleteService(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+        vars := mux.Vars(r)
+        serviceID, err := strconv.Atoi(vars["id"])
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusBadRequest, "неверный ID услуги")
+                return
+        }</span>
+
+        <span class="cov0" title="0">err = h.service.DeleteService(serviceID)
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusInternalServerError, err.Error())
+                return
+        }</span>
+
+        <span class="cov0" title="0">respondWithJSON(w, http.StatusOK, map[string]string{
+                "message": "услуга удалена успешно",
+        })</span>
+}
+
+func (h *Handler) SearchServices(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+        serviceType := r.URL.Query().Get("type")
+        location := r.URL.Query().Get("location")
+
+        services, err := h.service.SearchServices(serviceType, location)
+        if err != nil </span><span class="cov0" title="0">{
+                respondWithError(w, http.StatusInternalServerError, err.Error())
+                return
+        }</span>
+
+        <span class="cov0" title="0">respondWithJSON(w, http.StatusOK, services)</span>
+}
+
+func respondWithError(w http.ResponseWriter, code int, message string) <span class="cov0" title="0">{
+        respondWithJSON(w, code, map[string]string{"error": message})
+}</span>
+
+func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) <span class="cov0" title="0">{
+        w.Header().Set("Content-Type", "application/json")
+        w.WriteHeader(code)
+        json.NewEncoder(w).Encode(payload)
+}</span>
+</pre>
+		
+		<pre class="file" id="file22" style="display: none">package config
+
+import (
+        "fmt"
+        "os"
+)
+
+type Config struct {
+        Database  DatabaseConfig
+        Server    ServerConfig
+        JWTSecret string
+}
+
+type DatabaseConfig struct {
+        Host     string
+        Port     string
+        User     string
+        Password string
+        DBName   string
+        SSLMode  string
+}
+
+type ServerConfig struct {
+        Port string
+}
+
+func Load() *Config <span class="cov0" title="0">{
+        return &amp;Config{
+                Database: DatabaseConfig{
+                        Host:     getEnv("DB_HOST", "localhost"),
+                        Port:     getEnv("DB_PORT", "5432"),
+                        User:     getEnv("DB_USER", "postgres"),
+                        Password: getEnv("DB_PASSWORD", "Ana4aBada$$"),
+                        DBName:   getEnv("DB_NAME", "nanny_db"),
+                        SSLMode:  getEnv("DB_SSLMODE", "disable"),
+                },
+                Server: ServerConfig{
+                        Port: getEnv("SERVER_PORT", "8080"),
+                },
+                JWTSecret: getEnv("JWT_SECRET", "dev_secret"),
+        }
+}</span>
+
+func (c *DatabaseConfig) ConnectionString() string <span class="cov0" title="0">{
+        return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
+                c.User, c.Password, c.Host, c.Port, c.DBName, c.SSLMode)
+}</span>
+
+func getEnv(key, defaultValue string) string <span class="cov0" title="0">{
+        if value := os.Getenv(key); value != "" </span><span class="cov0" title="0">{
+                return value
+        }</span>
+        <span class="cov0" title="0">return defaultValue</span>
+}
+</pre>
+		
+		<pre class="file" id="file23" style="display: none">package validator
+
+import (
+        "errors"
+        "fmt"
+        "log"
+        "regexp"
+        "strings"
+
+        "github.com/go-playground/validator/v10"
+)
+
+var validate *validator.Validate
+
+func init() <span class="cov1" title="1">{
+        validate = validator.New()
+
+        if err := validate.RegisterValidation("phone_kz", validateKazakhPhone); err != nil </span><span class="cov0" title="0">{
+                log.Fatal("Failed to register phone_kz validator:", err)
+        }</span>
+        <span class="cov1" title="1">if err := validate.RegisterValidation("pet_type", validatePetType); err != nil </span><span class="cov0" title="0">{
+                log.Fatal("Failed to register pet_type validator:", err)
+        }</span>
+        <span class="cov1" title="1">if err := validate.RegisterValidation("booking_status", validateBookingStatus); err != nil </span><span class="cov0" title="0">{
+                log.Fatal("Failed to register booking_status validator:", err)
+        }</span>
+        <span class="cov1" title="1">if err := validate.RegisterValidation("user_role", validateUserRole); err != nil </span><span class="cov0" title="0">{
+                log.Fatal("Failed to register user_role validator:", err)
+        }</span>
+}
+
+func Validate(data interface{}) error <span class="cov9" title="41">{
+        err := validate.Struct(data)
+        if err != nil </span><span class="cov8" title="24">{
+                var validationErrors validator.ValidationErrors
+                if errors.As(err, &amp;validationErrors) </span><span class="cov8" title="24">{
+                        return formatValidationErrors(validationErrors)
+                }</span>
+                <span class="cov0" title="0">return err</span>
+        }
+        <span class="cov7" title="17">return nil</span>
+}
+
+func formatValidationErrors(errors validator.ValidationErrors) error <span class="cov8" title="24">{
+        var messages []string
+
+        for _, err := range errors </span><span class="cov8" title="24">{
+                message := getErrorMessage(err)
+                messages = append(messages, message)
+        }</span>
+
+        <span class="cov8" title="24">return fmt.Errorf("%s", strings.Join(messages, "; "))</span>
+}
+
+func getErrorMessage(err validator.FieldError) string <span class="cov8" title="24">{
+        field := getFieldName(err.Field())
+
+        switch err.Tag() </span>{
+        case "required":<span class="cov4" title="4">
+                return fmt.Sprintf("%s обязательно для заполнения", field)</span>
+        case "email":<span class="cov4" title="5">
+                return fmt.Sprintf("%s должен быть корректным email адресом", field)</span>
+        case "min":<span class="cov2" title="2">
+                return fmt.Sprintf("%s должно быть не менее %s символов", field, err.Param())</span>
+        case "max":<span class="cov0" title="0">
+                return fmt.Sprintf("%s должно быть не более %s символов", field, err.Param())</span>
+        case "gte":<span class="cov1" title="1">
+                return fmt.Sprintf("%s должно быть не менее %s", field, err.Param())</span>
+        case "lte":<span class="cov2" title="2">
+                return fmt.Sprintf("%s должно быть не более %s", field, err.Param())</span>
+        case "gt":<span class="cov0" title="0">
+                return fmt.Sprintf("%s должно быть больше %s", field, err.Param())</span>
+        case "lt":<span class="cov0" title="0">
+                return fmt.Sprintf("%s должно быть меньше %s", field, err.Param())</span>
+        case "phone_kz":<span class="cov5" title="7">
+                return fmt.Sprintf("%s должен быть в формате +7XXXXXXXXXX", field)</span>
+        case "pet_type":<span class="cov3" title="3">
+                return fmt.Sprintf("%s должен быть одним из: собака, кошка, птица, грызун, рептилия, другое", field)</span>
+        case "booking_status":<span class="cov0" title="0">
+                return fmt.Sprintf("%s должен быть одним из: pending, confirmed, cancelled, completed", field)</span>
+        case "user_role":<span class="cov0" title="0">
+                return fmt.Sprintf("%s должен быть одним из: owner, sitter, admin", field)</span>
+        default:<span class="cov0" title="0">
+                return fmt.Sprintf("%s не прошло валидацию (%s)", field, err.Tag())</span>
+        }
+}
+
+func getFieldName(field string) string <span class="cov8" title="24">{
+        fieldNames := map[string]string{
+                "FullName":        "Полное имя",
+                "Email":           "Email",
+                "Phone":           "Телефон",
+                "Password":        "Пароль",
+                "ExperienceYears": "Опыт работы",
+                "Certificates":    "Сертификаты",
+                "Preferences":     "Предпочтения",
+                "Location":        "Местоположение",
+                "Name":            "Имя",
+                "Type":            "Тип",
+                "Age":             "Возраст",
+                "Notes":           "Заметки",
+                "Rating":          "Рейтинг",
+                "Comment":         "Комментарий",
+                "OwnerID":         "ID владельца",
+                "SitterID":        "ID няни",
+                "PetID":           "ID питомца",
+                "ServiceID":       "ID услуги",
+                "BookingID":       "ID бронирования",
+                "StartTime":       "Время начала",
+                "EndTime":         "Время окончания",
+                "PricePerHour":    "Цена за час",
+                "Description":     "Описание",
+        }
+
+        if name, ok := fieldNames[field]; ok </span><span class="cov8" title="24">{
+                return name
+        }</span>
+        <span class="cov0" title="0">return field</span>
+}
+
+func validateKazakhPhone(fl validator.FieldLevel) bool <span class="cov7" title="14">{
+        phone := fl.Field().String()
+        matched, _ := regexp.MatchString(`^\+7\d{10}$`, phone)
+        return matched
+}</span>
+
+func validatePetType(fl validator.FieldLevel) bool <span class="cov7" title="15">{
+        petType := strings.ToLower(fl.Field().String())
+        validTypes := []string{"собака", "кошка", "птица", "грызун", "рептилия", "другое"}
+
+        for _, valid := range validTypes </span><span class="cov10" title="49">{
+                if petType == valid </span><span class="cov6" title="12">{
+                        return true
+                }</span>
+        }
+        <span class="cov3" title="3">return false</span>
+}
+
+func validateBookingStatus(fl validator.FieldLevel) bool <span class="cov0" title="0">{
+        status := strings.ToLower(fl.Field().String())
+        validStatuses := []string{"pending", "confirmed", "cancelled", "completed"}
+
+        for _, valid := range validStatuses </span><span class="cov0" title="0">{
+                if status == valid </span><span class="cov0" title="0">{
+                        return true
+                }</span>
+        }
+        <span class="cov0" title="0">return false</span>
+}
+
+func validateUserRole(fl validator.FieldLevel) bool <span class="cov0" title="0">{
+        role := strings.ToLower(fl.Field().String())
+        validRoles := []string{"owner", "sitter", "admin"}
+
+        for _, valid := range validRoles </span><span class="cov0" title="0">{
+                if role == valid </span><span class="cov0" title="0">{
+                        return true
+                }</span>
+        }
+        <span class="cov0" title="0">return false</span>
+}
+</pre>
+		
+		<pre class="file" id="file24" style="display: none">package main
+
+import (
+        "fmt"
+        "golang.org/x/crypto/bcrypt"
+)
+
+func main() <span class="cov0" title="0">{
+        password := "superadmin123"
+
+        hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+        if err != nil </span><span class="cov0" title="0">{
+                panic(err)</span>
+        }
+
+        <span class="cov0" title="0">fmt.Println("Hash:", string(hash))</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
