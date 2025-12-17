@@ -402,10 +402,12 @@ All errors return JSON:
 
 Quick test with curl:
 
-```bash# Register
+```bash
+# Register
 curl -X POST http://localhost:8080/api/auth/register/owner \
   -H "Content-Type: application/json" \
   -d '{"full_name":"Test","email":"test@test.com","phone":"+77001234567","password":"test123"}'
+```
 
 # Login and save token
 TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login \
@@ -414,6 +416,7 @@ TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login \
 
 
 # Create pet
+```
 curl -X POST http://localhost:8080/api/pets \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
