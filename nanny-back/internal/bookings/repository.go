@@ -1,11 +1,11 @@
 package bookings
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
-	"time"
-
 	"nanny-backend/internal/common/models"
+	"time"
 )
 
 type Repository interface {
@@ -42,8 +42,11 @@ func (r *repository) Create(booking *models.Booking) (int, error) {
 }
 
 func (r *repository) GetByID(bookingID int) (*models.Booking, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
 	booking := &models.Booking{}
-	err := r.db.QueryRow(`
+	err := r.db.QueryRowContext(ctx, `
 		SELECT booking_id, owner_id, sitter_id, pet_id, service_id, start_time, end_time, status
 		FROM bookings
 		WHERE booking_id = $1

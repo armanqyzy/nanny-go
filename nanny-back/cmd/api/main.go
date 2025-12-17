@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"nanny-backend/internal/common/handlers"
+	"nanny-backend/internal/workers"
 	"net/http"
 	"os"
 	"os/signal"
@@ -12,7 +14,6 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-
 	"nanny-backend/internal/admin"
 	"nanny-backend/internal/auth"
 	"nanny-backend/internal/bookings"
@@ -40,12 +41,22 @@ func main() {
 	setupReviewsModule(r, db)
 	setupServicesModule(r, db)
 	setupAdminModule(r, db)
-
+	r.HandleFunc("/health", handlers.HealthCheck).Methods("GET")
 	handler := middleware.CORS(
 		middleware.RequestLogger(
 			middleware.RateLimit(r),
 		),
 	)
+
+	pool := workers.NewWorkerPool(3)
+
+	for i := 1; i <= 5; i++ {
+		i := i
+		pool.Submit(func() {
+			log.Printf("Processing job %d", i)
+			time.Sleep(2 * time.Second)
+		})
+	}
 
 	addr := fmt.Sprintf(":%s", cfg.Server.Port)
 
@@ -53,6 +64,9 @@ func main() {
 		Addr:              addr,
 		Handler:           handler,
 		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       5 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
