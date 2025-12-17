@@ -180,7 +180,9 @@ For questions or issues, please contact the team members:
 
 
 
-**NOTE**
+# **NOTE**
+
+
 Course: Golang Application Development
 
 Instructor: Salikh Pernebek
