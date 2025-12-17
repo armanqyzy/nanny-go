@@ -27,10 +27,12 @@ type ServerConfig struct {
 func Load() *Config {
 	return &Config{
 		Database: DatabaseConfig{
+			// В Docker: postgres
+			// Локально: localhost
 			Host:     getEnv("DB_HOST", "localhost"),
 			Port:     getEnv("DB_PORT", "5432"),
 			User:     getEnv("DB_USER", "postgres"),
-			Password: getEnv("DB_PASSWORD", "Ana4aBada$$"),
+			Password: getEnv("DB_PASSWORD", "postgres"),
 			DBName:   getEnv("DB_NAME", "nanny_db"),
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
 		},
@@ -41,13 +43,22 @@ func Load() *Config {
 	}
 }
 
+// ConnectionString формирует PostgreSQL DSN
 func (c *DatabaseConfig) ConnectionString() string {
-	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
-		c.User, c.Password, c.Host, c.Port, c.DBName, c.SSLMode)
+	return fmt.Sprintf(
+		"postgres://%s:%s@%s:%s/%s?sslmode=%s",
+		c.User,
+		c.Password,
+		c.Host,
+		c.Port,
+		c.DBName,
+		c.SSLMode,
+	)
 }
 
+// getEnv читает переменную окружения или возвращает default
 func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
+	if value, exists := os.LookupEnv(key); exists && value != "" {
 		return value
 	}
 	return defaultValue
