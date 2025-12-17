@@ -180,8 +180,11 @@ For questions or issues, please contact the team members:
 
 
 
-
+**NOTE**
 Course: Golang Application Development
+
 Instructor: Salikh Pernebek
+
 University: Kazakh-British Technical University
+
 Academic Year: 2025-2026, fall semester
