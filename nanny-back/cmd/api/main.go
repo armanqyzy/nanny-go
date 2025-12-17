@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"nanny-backend/internal/common/handlers"
-	"nanny-backend/internal/workers"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+
 	"nanny-backend/internal/admin"
 	"nanny-backend/internal/auth"
 	"nanny-backend/internal/bookings"
@@ -28,35 +27,32 @@ import (
 func main() {
 	cfg := config.Load()
 
-	db, err := database.New(cfg.Database.ConnectionString())
+	// ========================
+	// Database (with retry)
+	// ========================
+	db, err := connectWithRetry(cfg.Database.ConnectionString(), 10, 3*time.Second)
 	if err != nil {
-		log.Fatal("❌ Ошибка подключения к БД:", err)
+		log.Fatal("❌ Failed to connect to database:", err)
 	}
 	defer db.Close()
 
+	// ========================
+	// Router
+	// ========================
 	r := mux.NewRouter()
+
 	setupAuthModule(r, db)
 	setupPetsModule(r, db)
 	setupBookingsModule(r, db)
 	setupReviewsModule(r, db)
 	setupServicesModule(r, db)
 	setupAdminModule(r, db)
-	r.HandleFunc("/health", handlers.HealthCheck).Methods("GET")
+
 	handler := middleware.CORS(
 		middleware.RequestLogger(
 			middleware.RateLimit(r),
 		),
 	)
-
-	pool := workers.NewWorkerPool(3)
-
-	for i := 1; i <= 5; i++ {
-		i := i
-		pool.Submit(func() {
-			log.Printf("Processing job %d", i)
-			time.Sleep(2 * time.Second)
-		})
-	}
 
 	addr := fmt.Sprintf(":%s", cfg.Server.Port)
 
@@ -64,34 +60,42 @@ func main() {
 		Addr:              addr,
 		Handler:           handler,
 		ReadHeaderTimeout: 10 * time.Second,
-		ReadTimeout:       5 * time.Second,
-		WriteTimeout:      10 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      15 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}
 
+	// ========================
+	// Background worker
+	// ========================
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	workerPing := make(chan struct{}, 1)
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		startBookingExpirationWorker(ctx, db, workerPing)
+		startBookingExpirationWorker(ctx, db)
 	}()
 
+	// ========================
+	// HTTP server
+	// ========================
 	go func() {
-		log.Printf("✅ API server running on http://localhost%s\n", addr)
+		log.Printf("✅ API server started on %s\n", addr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("❌ Server error: %v", err)
+			log.Fatalf("❌ HTTP server error: %v", err)
 		}
 	}()
 
+	// ========================
+	// Graceful shutdown
+	// ========================
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	log.Println("🛑 Shutting down...")
+	log.Println("🛑 Shutting down application...")
 
 	cancel()
 
@@ -99,44 +103,67 @@ func main() {
 	defer shutdownCancel()
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {
-		log.Printf("❌ Server forced to shutdown: %v", err)
+		log.Printf("❌ Forced shutdown: %v", err)
 	} else {
 		log.Println("✅ HTTP server stopped gracefully")
 	}
 
 	wg.Wait()
-	log.Println("✅ Background worker stopped, app exited cleanly")
+	log.Println("✅ Background worker stopped, application exited cleanly")
 }
 
-func startBookingExpirationWorker(ctx context.Context, db *database.Database, ping <-chan struct{}) {
+// ========================
+// Helpers
+// ========================
+
+func connectWithRetry(dsn string, attempts int, delay time.Duration) (*database.Database, error) {
+	var db *database.Database
+	var err error
+
+	for i := 1; i <= attempts; i++ {
+		db, err = database.New(dsn)
+		if err == nil {
+			log.Println("✅ Connected to database")
+			return db, nil
+		}
+
+		log.Printf("⏳ DB connection failed (attempt %d/%d): %v", i, attempts, err)
+		time.Sleep(delay)
+	}
+
+	return nil, err
+}
+
+// ========================
+// Background worker
+// ========================
+
+func startBookingExpirationWorker(ctx context.Context, db *database.Database) {
 	ticker := time.NewTicker(1 * time.Hour)
 	defer ticker.Stop()
 
-	log.Println("🔄 Background worker started: expired bookings check")
+	log.Println("🔄 Background worker started: booking expiration checker")
 
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("⏹️ Background worker: context cancelled")
+			log.Println("⏹️ Background worker stopped")
 			return
 
 		case <-ticker.C:
-			checkExpiredBookings(ctx, db)
-
-		case <-ping:
 			checkExpiredBookings(ctx, db)
 		}
 	}
 }
 
 func checkExpiredBookings(ctx context.Context, db *database.Database) {
-
 	query := `
 		UPDATE bookings
 		SET status = 'cancelled'
 		WHERE status = 'pending'
 		  AND start_time < NOW() - INTERVAL '24 hours'
 	`
+
 	res, err := db.DB.ExecContext(ctx, query)
 	if err != nil {
 		log.Printf("❌ Worker error updating expired bookings: %v", err)
@@ -146,10 +173,12 @@ func checkExpiredBookings(ctx context.Context, db *database.Database) {
 	affected, _ := res.RowsAffected()
 	if affected > 0 {
 		log.Printf("✅ Worker cancelled %d expired booking(s)", affected)
-	} else {
-		log.Println("ℹ️ Worker: no expired bookings found")
 	}
 }
+
+// ========================
+// Modules
+// ========================
 
 func setupAuthModule(r *mux.Router, db *database.Database) {
 	repo := auth.NewRepository(db.DB)
