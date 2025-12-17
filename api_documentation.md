@@ -23,8 +23,8 @@ Authorization: Bearer <your_token>
 No auth needed
 
 **Request:**
-```
-json{
+```json
+{
   "full_name": "Anara Armankyzy",
   "email": "anara.arman@kbtu.kz",
   "phone": "+77770296982",
@@ -33,7 +33,8 @@ json{
 ```
 
 **Response (200):**
-```json{
+```json
+{
   "message": "Owner registered successfully"
 }
 ```
@@ -43,7 +44,8 @@ json{
 No auth needed
 
 **Request:**
-```json{
+```json
+{
   "full_name": "Anara Armanik",
   "email": "anara.armanik@kbtu.kz",
   "phone": "+77770296982",
@@ -67,14 +69,16 @@ No auth needed
 `POST /api/auth/login`
 
 **Request:**
-```json{
+```json
+{
   "email": "anara.arman@kbtu.kz",
   "password": "SecurePass123"
 }
 ```
 
 **Response (200):**
-```json{
+```json
+{
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "user": {
     "user_id": 1,
@@ -95,7 +99,8 @@ Token is valid for 72 hours
 Needs auth (Owner only)
 
 **Request:**
-```json{
+```json
+{
   "name": "Buddy",
   "type": "dog",
   "age": 3,
@@ -106,7 +111,8 @@ Needs auth (Owner only)
 Valid types: cat, dog, rodent
 
 **Response (201):**
-```json{
+```json
+{
   "pet_id": 1,
   "owner_id": 1,
   "name": "Buddy",
@@ -121,7 +127,8 @@ Valid types: cat, dog, rodent
 Public endpoint
 
 **Response (200):**
-```json{
+```json
+{
   "pet_id": 1,
   "owner_id": 1,
   "name": "Buddy",
@@ -137,7 +144,8 @@ Public endpoint
 Needs auth (Owner only, must be your pet)
 
 **Request:**
-```json{
+```json
+{
   "name": "Buddy Jr.",
   "type": "dog",
   "age": 4,
@@ -195,15 +203,20 @@ Response (200):
 `GET /api/services/{id}`
 
 Public endpoint
-Get Sitter's Services
-GET /api/sitters/{sitter_id}/services
+
+## Get Sitter's Services
+GET `/api/sitters/{sitter_id}/services`
+
 Public endpoint
-Create Service
-POST /api/services
+
+## Create Service
+POST `/api/services`
+
 Needs auth (Sitter only, must be approved)
 
 **Request:**
-```json{
+```json
+{
   "type": "boarding",
   "price_per_hour": 7000.00,
   "description": "Pet stays at my place overnight"
@@ -211,19 +224,21 @@ Needs auth (Sitter only, must be approved)
 ```
 
 ## Update Service
-PUT /api/services/{id}
+PUT `/api/services/{id}`
 Needs auth (Sitter only, must be your service)
-Delete Service
-DELETE /api/services/{id}
+
+## Delete Service
+DELETE `/api/services/{id}`
 Needs auth (Sitter only)
 
 ## Bookings
 Create Booking
-POST /api/bookings
+POST `/api/bookings`
 Needs auth (Owner only)
 
 **Request:**
-```json{
+```json
+{
   "sitter_id": 2,
   "pet_id": 1,
   "service_id": 1,
@@ -243,6 +258,7 @@ Needs auth (Owner only)
 Booking flow: pending -> confirmed -> completed (or cancelled anytime)
 
 ### Get Booking
+
 **GET**  `/api/bookings/{id}`
 Public endpoint
 
@@ -281,7 +297,8 @@ POST `/api/reviews`
 Needs auth (Owner only)
 
 Request:
-```json{
+```json
+{
   "booking_id": 1,
   "rating": 5,
   "comment": "Excellent service!"
@@ -292,53 +309,65 @@ Request:
 - Rating must be 1-5
 - Booking must be completed
 - Can only review your own bookings
-= One review per booking
+- One review per booking
 
-Get Review
-GET /api/reviews/{id}
+## Get Review
+GET `/api/reviews/{id}`
+
 Public endpoint
-Update Review
-PUT /api/reviews/{id}
+### Update Review
+
+PUT `/api/reviews/{id}`
+
 Needs auth (Owner only, must be your review)
-Delete Review
+
+### Delete Review
 DELETE /api/reviews/{id}
+
 Needs auth (Owner only)
-Get Sitter's Reviews
-GET /api/sitters/{sitter_id}/reviews
-Public endpoint - returns all reviews for that sitter
-Get Sitter Rating
-GET /api/sitters/{sitter_id}/rating
+
+### Get Sitter's Reviews
+GET `/api/sitters/{sitter_id}/reviews`
+Public endpoint returns all reviews for that sitter
+
+### Get Sitter Rating
+GET `/api/sitters/{sitter_id}/rating`
+
 Response:
-json{
+```json
+{
   "sitter_id": 2,
   "average_rating": 4.75,
   "total_reviews": 24
 }
-Get Booking Review
-GET /api/bookings/{booking_id}/review
+```
+
+### Get Booking Review
+GET `/api/bookings/{booking_id}/review`
 Returns the review for specific booking (if exists)
 
-Admin Endpoints
+## Admin Endpoints
 All admin endpoints need admin role
-Get Pending Sitters
-GET /api/admin/sitters/pending
+### Get Pending Sitters
+GET `/api/admin/sitters/pending`
 Returns list of sitters waiting for approval
-Approve Sitter
-POST /api/admin/sitters/{sitter_id}/approve
+### Approve Sitter
+POST `/api/admin/sitters/{sitter_id}/approve`
 Changes sitter status to "approved"
-Reject Sitter
-POST /api/admin/sitters/{sitter_id}/reject
+### Reject Sitter
+POST `/api/admin/sitters/{sitter_id}/reject`
 Changes sitter status to "rejected"
-Get Sitter Details
-GET /api/admin/sitters/{sitter_id}
+### Get Sitter Details
+GET `/api/admin/sitters/{sitter_id}`
 Returns detailed info about sitter including stats
-Get All Users
-GET /api/admin/users
-Query params:
+### Get All Users
+GET `/api/admin/users`
 
-role - filter by owner/sitter/admin
-limit - how many results (default 50)
-offset - for pagination
+## Query params:
+
+- role - filter by owner/sitter/admin
+- limit - how many results (default 50)
+- offset - for pagination
 
 **Get User Details**
 
