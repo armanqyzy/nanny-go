@@ -16,7 +16,7 @@ The Nanny is a real world solution for pet care services nowadays, because there
 
 | Name | Role | Responsibilities |
 | --- | --- | --- |
-| **Armankyzy Anara** | Team Lead | Project coordination, authentication module development, input validation, repository organization, initial database schema design, code review and quality control, infrastructure management, environment setup |
+| **Armankyzy Anara** | Team Lead | Project coordination, authentication module development, input validation, repository organization, initial database schema design, code review and quality control, infrastructure management, environment setup, test coverage setup |
 | **Alimzhankyzy Nuray** | Scrum Master | Messaging system implementation, sprint planning, owner bookings fixes, team workflow coordination, JSON response standardization, unit test development, testing strategy and implementation |
 | **Kalikhan Arukhan** | QA Engineer | Makefile configuration, test coverage setup, JWT authentication implementation, backend/frontend separation, code quality assurance |
 | **Sabukhi Raziyev** | Core Backend Developer | Docker containerization, golang-migrate setup, database migrations, deployment configuration |
