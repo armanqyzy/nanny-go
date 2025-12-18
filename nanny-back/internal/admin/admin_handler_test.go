@@ -274,3 +274,138 @@ func TestGetSitterDetailsHandler(t *testing.T) {
 		t.Errorf("expected status 200, got %d", rr.Code)
 	}
 }
+
+func TestRejectSitterHandler_InvalidID(t *testing.T) {
+	mockSvc := &mockAdminServiceForHandler{}
+	handler := NewHandler(mockSvc)
+
+	req := httptest.NewRequest(http.MethodPut, "/api/admin/sitters/invalid/reject", nil)
+	req = mux.SetURLVars(req, map[string]string{"sitter_id": "invalid"})
+	rr := httptest.NewRecorder()
+
+	handler.RejectSitter(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rr.Code)
+	}
+}
+
+func TestRejectSitterHandler_ServiceError(t *testing.T) {
+	mockSvc := &mockAdminServiceForHandler{
+		rejectSitterFunc: func(id int) error {
+			return errors.New("rejection failed")
+		},
+	}
+
+	handler := NewHandler(mockSvc)
+	req := httptest.NewRequest(http.MethodPut, "/api/admin/sitters/1/reject", nil)
+	req = mux.SetURLVars(req, map[string]string{"sitter_id": "1"})
+	rr := httptest.NewRecorder()
+
+	handler.RejectSitter(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rr.Code)
+	}
+}
+
+func TestGetAllUsersHandler_Error(t *testing.T) {
+	mockSvc := &mockAdminServiceForHandler{
+		getAllUsersFunc: func() ([]models.User, error) {
+			return nil, errors.New("database error")
+		},
+	}
+
+	handler := NewHandler(mockSvc)
+	req := httptest.NewRequest(http.MethodGet, "/api/admin/users", nil)
+	rr := httptest.NewRecorder()
+
+	handler.GetAllUsers(rr, req)
+
+	if rr.Code != http.StatusInternalServerError {
+		t.Errorf("expected status 500, got %d", rr.Code)
+	}
+}
+
+func TestGetUserHandler_InvalidID(t *testing.T) {
+	mockSvc := &mockAdminServiceForHandler{}
+	handler := NewHandler(mockSvc)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/admin/users/invalid", nil)
+	req = mux.SetURLVars(req, map[string]string{"user_id": "invalid"})
+	rr := httptest.NewRecorder()
+
+	handler.GetUser(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rr.Code)
+	}
+}
+
+func TestDeleteUserHandler_InvalidID(t *testing.T) {
+	mockSvc := &mockAdminServiceForHandler{}
+	handler := NewHandler(mockSvc)
+
+	req := httptest.NewRequest(http.MethodDelete, "/api/admin/users/invalid", nil)
+	req = mux.SetURLVars(req, map[string]string{"user_id": "invalid"})
+	rr := httptest.NewRecorder()
+
+	handler.DeleteUser(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rr.Code)
+	}
+}
+
+func TestDeleteUserHandler_ServiceError(t *testing.T) {
+	mockSvc := &mockAdminServiceForHandler{
+		deleteUserFunc: func(id int) error {
+			return errors.New("delete failed")
+		},
+	}
+
+	handler := NewHandler(mockSvc)
+	req := httptest.NewRequest(http.MethodDelete, "/api/admin/users/1", nil)
+	req = mux.SetURLVars(req, map[string]string{"user_id": "1"})
+	rr := httptest.NewRecorder()
+
+	handler.DeleteUser(rr, req)
+
+	if rr.Code != http.StatusInternalServerError {
+		t.Errorf("expected status 500, got %d", rr.Code)
+	}
+}
+
+func TestGetSitterDetailsHandler_InvalidID(t *testing.T) {
+	mockSvc := &mockAdminServiceForHandler{}
+	handler := NewHandler(mockSvc)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/admin/sitters/invalid", nil)
+	req = mux.SetURLVars(req, map[string]string{"sitter_id": "invalid"})
+	rr := httptest.NewRecorder()
+
+	handler.GetSitterDetails(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rr.Code)
+	}
+}
+
+func TestGetSitterDetailsHandler_NotFound(t *testing.T) {
+	mockSvc := &mockAdminServiceForHandler{
+		getSitterDetailsFunc: func(id int) (*SitterDetails, error) {
+			return nil, errors.New("sitter not found")
+		},
+	}
+
+	handler := NewHandler(mockSvc)
+	req := httptest.NewRequest(http.MethodGet, "/api/admin/sitters/999", nil)
+	req = mux.SetURLVars(req, map[string]string{"sitter_id": "999"})
+	rr := httptest.NewRecorder()
+
+	handler.GetSitterDetails(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("expected status 404, got %d", rr.Code)
+	}
+}

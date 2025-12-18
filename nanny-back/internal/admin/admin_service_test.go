@@ -325,3 +325,128 @@ func TestGetSitterDetails(t *testing.T) {
 		t.Errorf("expected name 'John Doe', got '%s'", details.FullName)
 	}
 }
+
+func TestGetPendingSitters_Error(t *testing.T) {
+	repo := &mockAdminRepository{
+		getPendingSittersFunc: func() ([]models.Sitter, error) {
+			return nil, errors.New("database error")
+		},
+	}
+	svc := NewService(repo)
+
+	_, err := svc.GetPendingSitters()
+	if err == nil {
+		t.Error("expected error, got nil")
+	}
+}
+
+func TestGetAllUsers_Error(t *testing.T) {
+	repo := &mockAdminRepository{
+		getAllUsersFunc: func() ([]models.User, error) {
+			return nil, errors.New("database error")
+		},
+	}
+	svc := NewService(repo)
+
+	_, err := svc.GetAllUsers()
+	if err == nil {
+		t.Error("expected error, got nil")
+	}
+}
+
+func TestGetUser_Error(t *testing.T) {
+	repo := &mockAdminRepository{
+		getUserByIDFunc: func(userID int) (*models.User, error) {
+			return nil, errors.New("user not found")
+		},
+	}
+	svc := NewService(repo)
+
+	_, err := svc.GetUser(999)
+	if err == nil {
+		t.Error("expected error, got nil")
+	}
+}
+
+func TestGetSitterDetails_Error(t *testing.T) {
+	repo := &mockAdminRepository{
+		getSitterDetailsFunc: func(sitterID int) (*SitterDetails, error) {
+			return nil, errors.New("sitter not found")
+		},
+	}
+	svc := NewService(repo)
+
+	_, err := svc.GetSitterDetails(999)
+	if err == nil {
+		t.Error("expected error, got nil")
+	}
+}
+
+func TestApproveSitter_RepositoryError(t *testing.T) {
+	repo := &mockAdminRepository{
+		getSitterDetailsFunc: func(id int) (*SitterDetails, error) {
+			return &SitterDetails{
+				Sitter: models.Sitter{SitterID: id, Status: "pending"},
+			}, nil
+		},
+		approveSitterFunc: func(id int) error {
+			return errors.New("repository error")
+		},
+	}
+	svc := NewService(repo)
+
+	err := svc.ApproveSitter(1)
+	if err == nil {
+		t.Error("expected error, got nil")
+	}
+}
+
+func TestRejectSitter_RepositoryError(t *testing.T) {
+	repo := &mockAdminRepository{
+		getSitterDetailsFunc: func(id int) (*SitterDetails, error) {
+			return &SitterDetails{
+				Sitter: models.Sitter{SitterID: id, Status: "pending"},
+			}, nil
+		},
+		rejectSitterFunc: func(id int) error {
+			return errors.New("repository error")
+		},
+	}
+	svc := NewService(repo)
+
+	err := svc.RejectSitter(1)
+	if err == nil {
+		t.Error("expected error, got nil")
+	}
+}
+
+func TestRejectSitter_GetDetailsError(t *testing.T) {
+	repo := &mockAdminRepository{
+		getSitterDetailsFunc: func(id int) (*SitterDetails, error) {
+			return nil, errors.New("sitter not found")
+		},
+	}
+	svc := NewService(repo)
+
+	err := svc.RejectSitter(1)
+	if err == nil {
+		t.Error("expected error, got nil")
+	}
+}
+
+func TestDeleteUser_DeleteError(t *testing.T) {
+	repo := &mockAdminRepository{
+		getUserByIDFunc: func(id int) (*models.User, error) {
+			return &models.User{UserID: id}, nil
+		},
+		deleteUserFunc: func(id int) error {
+			return errors.New("delete failed")
+		},
+	}
+	svc := NewService(repo)
+
+	err := svc.DeleteUser(1)
+	if err == nil {
+		t.Error("expected error, got nil")
+	}
+}

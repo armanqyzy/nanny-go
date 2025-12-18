@@ -29,7 +29,6 @@ func (s *service) GetPendingSitters() ([]models.Sitter, error) {
 }
 
 func (s *service) ApproveSitter(sitterID int) error {
-	// Проверяем, что няня существует и в статусе pending
 	details, err := s.repo.GetSitterDetails(sitterID)
 	if err != nil {
 		return err
@@ -43,7 +42,6 @@ func (s *service) ApproveSitter(sitterID int) error {
 }
 
 func (s *service) RejectSitter(sitterID int) error {
-	// Проверяем, что няня существует и в статусе pending
 	details, err := s.repo.GetSitterDetails(sitterID)
 	if err != nil {
 		return err
@@ -65,7 +63,6 @@ func (s *service) GetUser(userID int) (*models.User, error) {
 }
 
 func (s *service) DeleteUser(userID int) error {
-	// Проверяем, что пользователь существует
 	_, err := s.repo.GetUserByID(userID)
 	if err != nil {
 		return err
