@@ -47,7 +47,7 @@ func TestApproveSitterRepository(t *testing.T) {
 	repo := NewRepository(db)
 
 	mock.ExpectExec("UPDATE sitters SET status").
-		WithArgs("approved", 1).
+		WithArgs(1).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	err = repo.ApproveSitter(1)
@@ -70,7 +70,7 @@ func TestRejectSitterRepository(t *testing.T) {
 	repo := NewRepository(db)
 
 	mock.ExpectExec("UPDATE sitters SET status").
-		WithArgs("rejected", 1).
+		WithArgs(1).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	err = repo.RejectSitter(1)
@@ -92,9 +92,9 @@ func TestGetAllUsersRepository(t *testing.T) {
 
 	repo := NewRepository(db)
 
-	rows := sqlmock.NewRows([]string{"user_id", "email", "full_name", "role"}).
-		AddRow(1, "user1@test.com", "User One", "owner").
-		AddRow(2, "user2@test.com", "User Two", "sitter")
+	rows := sqlmock.NewRows([]string{"user_id", "full_name", "email", "phone", "role", "created_at"}).
+		AddRow(1, "User One", "user1@test.com", "123456", "owner", "2024-01-01T00:00:00Z").
+		AddRow(2, "User Two", "user2@test.com", "654321", "sitter", "2024-01-02T00:00:00Z")
 
 	mock.ExpectQuery("SELECT (.+) FROM users").
 		WillReturnRows(rows)
@@ -121,8 +121,8 @@ func TestGetUserByIDRepository(t *testing.T) {
 
 	repo := NewRepository(db)
 
-	rows := sqlmock.NewRows([]string{"user_id", "email", "full_name", "phone", "role"}).
-		AddRow(1, "test@example.com", "Test User", "1234567890", "owner")
+	rows := sqlmock.NewRows([]string{"user_id", "full_name", "email", "phone", "role", "created_at"}).
+		AddRow(1, "Test User", "test@example.com", "1234567890", "owner", "2024-01-01T00:00:00Z")
 
 	mock.ExpectQuery("SELECT (.+) FROM users WHERE user_id").
 		WithArgs(1).
