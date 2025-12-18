@@ -94,7 +94,7 @@ func TestHandler_CreateService_Success(t *testing.T) {
 	if err != nil {
 		return
 	}
-	assert.Equal(t, "услуга создана успешно", resp["message"])
+	assert.Equal(t, "servie создана succesfully", resp["message"])
 	assert.Equal(t, float64(123), resp["service_id"])
 }
 
@@ -111,13 +111,13 @@ func TestHandler_CreateService_InvalidBody(t *testing.T) {
 
 	var resp map[string]string
 	json.Unmarshal(rec.Body.Bytes(), &resp)
-	assert.Contains(t, resp["error"], "неверные данные")
+	assert.Contains(t, resp["error"], "incorrect data")
 }
 
 func TestHandler_CreateService_ServiceError(t *testing.T) {
 	mockSvc := &mockServiceForHandler{
 		createServiceFunc: func(sitterID int, serviceType string, pricePerHour float64, description string) (int, error) {
-			return 0, errors.New("неверный тип услуги")
+			return 0, errors.New("incorrect type service")
 		},
 	}
 	handler := NewHandler(mockSvc)
@@ -140,7 +140,7 @@ func TestHandler_CreateService_ServiceError(t *testing.T) {
 
 	var resp map[string]string
 	json.Unmarshal(rec.Body.Bytes(), &resp)
-	assert.Contains(t, resp["error"], "неверный тип услуги")
+	assert.Contains(t, resp["error"], "incorrect type service")
 }
 
 func TestHandler_GetService_Success(t *testing.T) {
@@ -185,13 +185,13 @@ func TestHandler_GetService_InvalidID(t *testing.T) {
 
 	var resp map[string]string
 	json.Unmarshal(rec.Body.Bytes(), &resp)
-	assert.Contains(t, resp["error"], "неверный ID услуги")
+	assert.Contains(t, resp["error"], "incorrect ID service")
 }
 
 func TestHandler_GetService_NotFound(t *testing.T) {
 	mockSvc := &mockServiceForHandler{
 		getServiceFunc: func(serviceID int) (*models.Service, error) {
-			return nil, errors.New("услуга не найдена")
+			return nil, errors.New("servie not found")
 		},
 	}
 	handler := NewHandler(mockSvc)
@@ -206,7 +206,7 @@ func TestHandler_GetService_NotFound(t *testing.T) {
 
 	var resp map[string]string
 	json.Unmarshal(rec.Body.Bytes(), &resp)
-	assert.Contains(t, resp["error"], "услуга не найдена")
+	assert.Contains(t, resp["error"], "servie not found")
 }
 
 func TestHandler_GetSitterServices_Success(t *testing.T) {
@@ -249,7 +249,7 @@ func TestHandler_GetSitterServices_InvalidID(t *testing.T) {
 
 	var resp map[string]string
 	json.Unmarshal(rec.Body.Bytes(), &resp)
-	assert.Contains(t, resp["error"], "неверный ID няни")
+	assert.Contains(t, resp["error"], "incorrect ID nanny")
 }
 
 func TestHandler_GetSitterServices_Error(t *testing.T) {
@@ -299,7 +299,7 @@ func TestHandler_UpdateService_Success(t *testing.T) {
 
 	var resp map[string]string
 	json.Unmarshal(rec.Body.Bytes(), &resp)
-	assert.Equal(t, "услуга обновлена успешно", resp["message"])
+	assert.Equal(t, "servie updated succesfully", resp["message"])
 }
 
 func TestHandler_UpdateService_InvalidID(t *testing.T) {
@@ -322,7 +322,7 @@ func TestHandler_UpdateService_InvalidID(t *testing.T) {
 
 	var resp map[string]string
 	json.Unmarshal(rec.Body.Bytes(), &resp)
-	assert.Contains(t, resp["error"], "неверный ID услуги")
+	assert.Contains(t, resp["error"], "incorrect ID service")
 }
 
 func TestHandler_UpdateService_InvalidBody(t *testing.T) {
@@ -339,13 +339,13 @@ func TestHandler_UpdateService_InvalidBody(t *testing.T) {
 
 	var resp map[string]string
 	json.Unmarshal(rec.Body.Bytes(), &resp)
-	assert.Contains(t, resp["error"], "неверные данные")
+	assert.Contains(t, resp["error"], "incorrect data")
 }
 
 func TestHandler_UpdateService_ServiceError(t *testing.T) {
 	mockSvc := &mockServiceForHandler{
 		updateServiceFunc: func(serviceID int, serviceType string, pricePerHour float64, description string) error {
-			return errors.New("неверный тип услуги")
+			return errors.New("incorrect type service")
 		},
 	}
 	handler := NewHandler(mockSvc)
@@ -367,7 +367,7 @@ func TestHandler_UpdateService_ServiceError(t *testing.T) {
 
 	var resp map[string]string
 	json.Unmarshal(rec.Body.Bytes(), &resp)
-	assert.Contains(t, resp["error"], "неверный тип услуги")
+	assert.Contains(t, resp["error"], "incorrect type service")
 }
 
 func TestHandler_DeleteService_Success(t *testing.T) {
@@ -388,7 +388,7 @@ func TestHandler_DeleteService_Success(t *testing.T) {
 
 	var resp map[string]string
 	json.Unmarshal(rec.Body.Bytes(), &resp)
-	assert.Equal(t, "услуга удалена успешно", resp["message"])
+	assert.Equal(t, "servie deleted succesfully", resp["message"])
 }
 
 func TestHandler_DeleteService_InvalidID(t *testing.T) {
@@ -405,7 +405,7 @@ func TestHandler_DeleteService_InvalidID(t *testing.T) {
 
 	var resp map[string]string
 	json.Unmarshal(rec.Body.Bytes(), &resp)
-	assert.Contains(t, resp["error"], "неверный ID услуги")
+	assert.Contains(t, resp["error"], "incorrect ID service")
 }
 
 func TestHandler_DeleteService_Error(t *testing.T) {

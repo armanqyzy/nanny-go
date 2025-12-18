@@ -34,7 +34,7 @@ func (r *repository) Create(review *models.Review) (int, error) {
 	`, review.BookingID, review.OwnerID, review.SitterID, review.Rating, review.Comment).Scan(&reviewID)
 
 	if err != nil {
-		return 0, fmt.Errorf("не удалось создать отзыв: %w", err)
+		return 0, fmt.Errorf("could not create a review: %w", err)
 	}
 
 	return reviewID, nil
@@ -57,10 +57,10 @@ func (r *repository) GetByID(reviewID int) (*models.Review, error) {
 	)
 
 	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("отзыв не найден")
+		return nil, fmt.Errorf("review not found")
 	}
 	if err != nil {
-		return nil, fmt.Errorf("ошибка получения отзыва: %w", err)
+		return nil, fmt.Errorf("error getting review: %w", err)
 	}
 
 	return review, nil
@@ -75,7 +75,7 @@ func (r *repository) GetBySitterID(sitterID int) ([]models.Review, error) {
 	`, sitterID)
 
 	if err != nil {
-		return nil, fmt.Errorf("ошибка получения отзывов: %w", err)
+		return nil, fmt.Errorf("error getting review: %w", err)
 	}
 	defer rows.Close()
 
@@ -92,7 +92,7 @@ func (r *repository) GetBySitterID(sitterID int) ([]models.Review, error) {
 			&review.CreatedAt,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("ошибка сканирования отзыва: %w", err)
+			return nil, fmt.Errorf("error scanning review: %w", err)
 		}
 		reviews = append(reviews, review)
 	}
@@ -117,10 +117,10 @@ func (r *repository) GetByBookingID(bookingID int) (*models.Review, error) {
 	)
 
 	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("отзыв не найден")
+		return nil, fmt.Errorf("review not found")
 	}
 	if err != nil {
-		return nil, fmt.Errorf("ошибка получения отзыва: %w", err)
+		return nil, fmt.Errorf("error getting review: %w", err)
 	}
 
 	return review, nil
@@ -134,7 +134,7 @@ func (r *repository) Update(review *models.Review) error {
 	`, review.Rating, review.Comment, review.ReviewID)
 
 	if err != nil {
-		return fmt.Errorf("не удалось обновить отзыв: %w", err)
+		return fmt.Errorf("could not update review: %w", err)
 	}
 
 	return nil
@@ -143,7 +143,7 @@ func (r *repository) Update(review *models.Review) error {
 func (r *repository) Delete(reviewID int) error {
 	_, err := r.db.Exec(`DELETE FROM reviews WHERE review_id = $1`, reviewID)
 	if err != nil {
-		return fmt.Errorf("не удалось удалить отзыв: %w", err)
+		return fmt.Errorf("could not delete a review: %w", err)
 	}
 	return nil
 }
@@ -159,7 +159,7 @@ func (r *repository) GetSitterRating(sitterID int) (float64, int, error) {
 	`, sitterID).Scan(&avgRating, &count)
 
 	if err != nil {
-		return 0, 0, fmt.Errorf("ошибка расчёта рейтинга: %w", err)
+		return 0, 0, fmt.Errorf("error calculating rating: %w", err)
 	}
 
 	if !avgRating.Valid {

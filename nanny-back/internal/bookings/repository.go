@@ -62,10 +62,10 @@ func (r *repository) GetByID(bookingID int) (*models.Booking, error) {
 	)
 
 	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("бронирование не найдено")
+		return nil, fmt.Errorf("booking not found")
 	}
 	if err != nil {
-		return nil, fmt.Errorf("ошибка получения бронирования: %w", err)
+		return nil, fmt.Errorf("error getting booking: %w", err)
 	}
 
 	return booking, nil
@@ -80,7 +80,7 @@ func (r *repository) GetByOwnerID(ownerID int) ([]models.Booking, error) {
 	`, ownerID)
 
 	if err != nil {
-		return nil, fmt.Errorf("ошибка получения бронирований: %w", err)
+		return nil, fmt.Errorf("error getting booking: %w", err)
 	}
 	defer rows.Close()
 
@@ -96,7 +96,7 @@ func (r *repository) GetBySitterID(sitterID int) ([]models.Booking, error) {
 	`, sitterID)
 
 	if err != nil {
-		return nil, fmt.Errorf("ошибка получения бронирований: %w", err)
+		return nil, fmt.Errorf("error getting booking: %w", err)
 	}
 	defer rows.Close()
 
@@ -111,7 +111,7 @@ func (r *repository) UpdateStatus(bookingID int, status string) error {
 	`, status, bookingID)
 
 	if err != nil {
-		return fmt.Errorf("не удалось обновить статус бронирования: %w", err)
+		return fmt.Errorf("could not refresh the status booking: %w", err)
 	}
 
 	return nil
@@ -120,7 +120,7 @@ func (r *repository) UpdateStatus(bookingID int, status string) error {
 func (r *repository) Delete(bookingID int) error {
 	_, err := r.db.Exec(`DELETE FROM bookings WHERE booking_id = $1`, bookingID)
 	if err != nil {
-		return fmt.Errorf("не удалось удалить бронирование: %w", err)
+		return fmt.Errorf("could not delete the booking: %w", err)
 	}
 	return nil
 }
@@ -142,7 +142,7 @@ func scanBookings(rows *sql.Rows) ([]models.Booking, error) {
 			&booking.Status,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("ошибка сканирования бронирования: %w", err)
+			return nil, fmt.Errorf("error scanning booking: %w", err)
 		}
 
 		booking.StartTime = startTime

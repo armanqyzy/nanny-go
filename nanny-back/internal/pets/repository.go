@@ -32,7 +32,7 @@ func (r *repository) Create(pet *models.Pet) (int, error) {
 	`, pet.OwnerID, pet.Name, pet.Type, pet.Age, pet.Notes).Scan(&petID)
 
 	if err != nil {
-		return 0, fmt.Errorf("не удалось создать питомца: %w", err)
+		return 0, fmt.Errorf("cannot create a pet: %w", err)
 	}
 
 	return petID, nil
@@ -54,10 +54,10 @@ func (r *repository) GetByID(petID int) (*models.Pet, error) {
 	)
 
 	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("питомец не найден")
+		return nil, fmt.Errorf("pet not found")
 	}
 	if err != nil {
-		return nil, fmt.Errorf("ошибка получения питомца: %w", err)
+		return nil, fmt.Errorf("error getting pet: %w", err)
 	}
 
 	return pet, nil
@@ -71,7 +71,7 @@ func (r *repository) GetByOwnerID(ownerID int) ([]models.Pet, error) {
 	`, ownerID)
 
 	if err != nil {
-		return nil, fmt.Errorf("ошибка получения питомцев: %w", err)
+		return nil, fmt.Errorf("error getting pets: %w", err)
 	}
 	defer rows.Close()
 
@@ -87,7 +87,7 @@ func (r *repository) GetByOwnerID(ownerID int) ([]models.Pet, error) {
 			&pet.Notes,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("ошибка сканирования питомца: %w", err)
+			return nil, fmt.Errorf("error scanning pet: %w", err)
 		}
 		pets = append(pets, pet)
 	}
@@ -103,7 +103,7 @@ func (r *repository) Update(pet *models.Pet) error {
 	`, pet.Name, pet.Type, pet.Age, pet.Notes, pet.PetID)
 
 	if err != nil {
-		return fmt.Errorf("не удалось обновить питомца: %w", err)
+		return fmt.Errorf("cannot refresh pet: %w", err)
 	}
 
 	return nil
@@ -112,7 +112,7 @@ func (r *repository) Update(pet *models.Pet) error {
 func (r *repository) Delete(petID int) error {
 	_, err := r.db.Exec(`DELETE FROM pets WHERE pet_id = $1`, petID)
 	if err != nil {
-		return fmt.Errorf("не удалось удалить питомца: %w", err)
+		return fmt.Errorf("cannot delete pet: %w", err)
 	}
 	return nil
 }

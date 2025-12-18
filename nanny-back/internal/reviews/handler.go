@@ -34,7 +34,7 @@ type UpdateReviewRequest struct {
 func (h *Handler) CreateReview(w http.ResponseWriter, r *http.Request) {
 	var req CreateReviewRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверные данные")
+		respondWithError(w, http.StatusBadRequest, "incorrect data")
 		return
 	}
 
@@ -56,7 +56,7 @@ func (h *Handler) CreateReview(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusCreated, map[string]interface{}{
-		"message":   "отзыв создан успешно",
+		"message":   "review created succesfully",
 		"review_id": reviewID,
 	})
 }
@@ -65,12 +65,12 @@ func (h *Handler) GetReview(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	reviewID, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверный ID отзыва")
+		respondWithError(w, http.StatusBadRequest, "incorrect ID review")
 		return
 	}
 
 	if reviewID <= 0 {
-		respondWithError(w, http.StatusBadRequest, "ID отзыва должен быть положительным числом")
+		respondWithError(w, http.StatusBadRequest, "ID review must be positive")
 		return
 	}
 
@@ -87,12 +87,12 @@ func (h *Handler) GetSitterReviews(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	sitterID, err := strconv.Atoi(vars["sitter_id"])
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверный ID няни")
+		respondWithError(w, http.StatusBadRequest, "incorrect ID nanny")
 		return
 	}
 
 	if sitterID <= 0 {
-		respondWithError(w, http.StatusBadRequest, "ID няни должен быть положительным числом")
+		respondWithError(w, http.StatusBadRequest, "ID nanny must be positive")
 		return
 	}
 
@@ -109,12 +109,12 @@ func (h *Handler) GetSitterRating(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	sitterID, err := strconv.Atoi(vars["sitter_id"])
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверный ID няни")
+		respondWithError(w, http.StatusBadRequest, "incorrect ID nanny")
 		return
 	}
 
 	if sitterID <= 0 {
-		respondWithError(w, http.StatusBadRequest, "ID няни должен быть положительным числом")
+		respondWithError(w, http.StatusBadRequest, "ID nanny must be positive")
 		return
 	}
 
@@ -135,12 +135,12 @@ func (h *Handler) GetBookingReview(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	bookingID, err := strconv.Atoi(vars["booking_id"])
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверный ID бронирования")
+		respondWithError(w, http.StatusBadRequest, "incorrect ID booking")
 		return
 	}
 
 	if bookingID <= 0 {
-		respondWithError(w, http.StatusBadRequest, "ID бронирования должен быть положительным числом")
+		respondWithError(w, http.StatusBadRequest, "ID booking must be positive")
 		return
 	}
 
@@ -157,18 +157,18 @@ func (h *Handler) UpdateReview(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	reviewID, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверный ID отзыва")
+		respondWithError(w, http.StatusBadRequest, "incorrect ID review")
 		return
 	}
 
 	if reviewID <= 0 {
-		respondWithError(w, http.StatusBadRequest, "ID отзыва должен быть положительным числом")
+		respondWithError(w, http.StatusBadRequest, "ID review must be positive")
 		return
 	}
 
 	var req UpdateReviewRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверные данные")
+		respondWithError(w, http.StatusBadRequest, "incorrect data")
 		return
 	}
 
@@ -184,7 +184,7 @@ func (h *Handler) UpdateReview(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusOK, map[string]string{
-		"message": "отзыв обновлён успешно",
+		"message": "review refreshed succesfully",
 	})
 }
 
@@ -192,12 +192,12 @@ func (h *Handler) DeleteReview(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	reviewID, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверный ID отзыва")
+		respondWithError(w, http.StatusBadRequest, "incorrect ID review")
 		return
 	}
 
 	if reviewID <= 0 {
-		respondWithError(w, http.StatusBadRequest, "ID отзыва должен быть положительным числом")
+		respondWithError(w, http.StatusBadRequest, "ID review must be positive")
 		return
 	}
 
@@ -208,7 +208,7 @@ func (h *Handler) DeleteReview(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusOK, map[string]string{
-		"message": "отзыв удалён успешно",
+		"message": "review deleted successfully",
 	})
 }
 

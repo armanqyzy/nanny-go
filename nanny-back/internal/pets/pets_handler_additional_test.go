@@ -27,7 +27,7 @@ func TestHandler_CreatePet_InvalidJSON(t *testing.T) {
 
 	var resp map[string]string
 	json.Unmarshal(rec.Body.Bytes(), &resp)
-	assert.Contains(t, resp["error"], "неверные данные")
+	assert.Contains(t, resp["error"], "incorrect data")
 }
 
 func TestHandler_CreatePet_ValidationError(t *testing.T) {
@@ -89,7 +89,7 @@ func TestHandler_GetPet_InvalidID(t *testing.T) {
 
 	var resp map[string]string
 	json.Unmarshal(rec.Body.Bytes(), &resp)
-	assert.Contains(t, resp["error"], "неверный ID питомца")
+	assert.Contains(t, resp["error"], "incorrect ID пpetитомца")
 }
 
 func TestHandler_GetPet_ZeroID(t *testing.T) {
@@ -106,13 +106,13 @@ func TestHandler_GetPet_ZeroID(t *testing.T) {
 
 	var resp map[string]string
 	json.Unmarshal(rec.Body.Bytes(), &resp)
-	assert.Contains(t, resp["error"], "ID питомца должен быть положительным числом")
+	assert.Contains(t, resp["error"], "ID pet must be positive")
 }
 
 func TestHandler_GetPet_NotFound(t *testing.T) {
 	mockSvc := &mockPetService{
 		getPetByIDFunc: func(petID int) (*models.Pet, error) {
-			return nil, errors.New("питомец не найден")
+			return nil, errors.New("pet not found")
 		},
 	}
 	handler := NewHandler(mockSvc)
@@ -140,7 +140,7 @@ func TestHandler_GetOwnerPets_InvalidID(t *testing.T) {
 
 	var resp map[string]string
 	json.Unmarshal(rec.Body.Bytes(), &resp)
-	assert.Contains(t, resp["error"], "неверный ID владельца")
+	assert.Contains(t, resp["error"], "incorrect ID owner")
 }
 
 func TestHandler_GetOwnerPets_ZeroID(t *testing.T) {
@@ -227,7 +227,7 @@ func TestHandler_UpdatePet_InvalidJSON(t *testing.T) {
 
 	var resp map[string]string
 	json.Unmarshal(rec.Body.Bytes(), &resp)
-	assert.Contains(t, resp["error"], "неверные данные")
+	assert.Contains(t, resp["error"], "incorrect data")
 }
 
 func TestHandler_UpdatePet_ValidationError(t *testing.T) {

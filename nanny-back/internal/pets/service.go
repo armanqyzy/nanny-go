@@ -25,7 +25,7 @@ func NewService(repo Repository) Service {
 func (s *service) CreatePet(ownerID int, name, petType string, age int, notes string) (int, error) {
 	validTypes := map[string]bool{"cat": true, "dog": true, "rodent": true}
 	if !validTypes[petType] {
-		return 0, fmt.Errorf("неверный тип питомца. Допустимые значения: cat, dog, rodent")
+		return 0, fmt.Errorf("incorrect type of pet. Only: cat, dog, rodent")
 	}
 
 	pet := &models.Pet{
@@ -38,7 +38,7 @@ func (s *service) CreatePet(ownerID int, name, petType string, age int, notes st
 
 	petID, err := s.repo.Create(pet)
 	if err != nil {
-		return 0, fmt.Errorf("ошибка создания питомца: %w", err)
+		return 0, fmt.Errorf("error creating pet: %w", err)
 	}
 
 	return petID, nil
@@ -55,7 +55,7 @@ func (s *service) GetPetsByOwner(ownerID int) ([]models.Pet, error) {
 func (s *service) UpdatePet(petID int, name, petType string, age int, notes string) error {
 	validTypes := map[string]bool{"cat": true, "dog": true, "rodent": true}
 	if !validTypes[petType] {
-		return fmt.Errorf("неверный тип питомца. Допустимые значения: cat, dog, rodent")
+		return fmt.Errorf("incorrect type of pet. Only: cat, dog, rodent")
 	}
 
 	pet := &models.Pet{

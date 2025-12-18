@@ -26,12 +26,12 @@ func NewService(repo Repository) Service {
 
 func (s *service) CreateReview(bookingID, ownerID, sitterID, rating int, comment string) (int, error) {
 	if rating < 1 || rating > 5 {
-		return 0, fmt.Errorf("рейтинг должен быть от 1 до 5")
+		return 0, fmt.Errorf("rating must be from 1 to 5")
 	}
 
 	existing, _ := s.repo.GetByBookingID(bookingID)
 	if existing != nil {
-		return 0, fmt.Errorf("отзыв на это бронирование уже существует")
+		return 0, fmt.Errorf("revuew for this already exists")
 	}
 
 	review := &models.Review{
@@ -44,7 +44,7 @@ func (s *service) CreateReview(bookingID, ownerID, sitterID, rating int, comment
 
 	reviewID, err := s.repo.Create(review)
 	if err != nil {
-		return 0, fmt.Errorf("ошибка создания отзыва: %w", err)
+		return 0, fmt.Errorf("error creatung review: %w", err)
 	}
 
 	return reviewID, nil
@@ -64,7 +64,7 @@ func (s *service) GetBookingReview(bookingID int) (*models.Review, error) {
 
 func (s *service) UpdateReview(reviewID, rating int, comment string) error {
 	if rating < 1 || rating > 5 {
-		return fmt.Errorf("рейтинг должен быть от 1 до 5")
+		return fmt.Errorf("rating must be from 1 to 5")
 	}
 
 	review, err := s.repo.GetByID(reviewID)

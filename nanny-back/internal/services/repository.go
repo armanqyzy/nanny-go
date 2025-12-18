@@ -39,7 +39,7 @@ func (r *repository) Create(service *models.Service) (int, error) {
 	`, service.SitterID, service.Type, service.PricePerHour, service.Description).Scan(&serviceID)
 
 	if err != nil {
-		return 0, fmt.Errorf("не удалось создать услугу: %w", err)
+		return 0, fmt.Errorf("coould not создать serviceу: %w", err)
 	}
 
 	return serviceID, nil
@@ -60,10 +60,10 @@ func (r *repository) GetByID(serviceID int) (*models.Service, error) {
 	)
 
 	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("услуга не найдена")
+		return nil, fmt.Errorf("service not found")
 	}
 	if err != nil {
-		return nil, fmt.Errorf("ошибка получения услуги: %w", err)
+		return nil, fmt.Errorf("error getting service: %w", err)
 	}
 
 	return service, nil
@@ -77,7 +77,7 @@ func (r *repository) GetBySitterID(sitterID int) ([]models.Service, error) {
 	`, sitterID)
 
 	if err != nil {
-		return nil, fmt.Errorf("ошибка получения услуг: %w", err)
+		return nil, fmt.Errorf("error getting service: %w", err)
 	}
 	defer rows.Close()
 
@@ -92,7 +92,7 @@ func (r *repository) GetBySitterID(sitterID int) ([]models.Service, error) {
 			&service.Description,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("ошибка сканирования услуги: %w", err)
+			return nil, fmt.Errorf("error scanning service: %w", err)
 		}
 		services = append(services, service)
 	}
@@ -108,7 +108,7 @@ func (r *repository) Update(service *models.Service) error {
 	`, service.Type, service.PricePerHour, service.Description, service.ServiceID)
 
 	if err != nil {
-		return fmt.Errorf("не удалось обновить услугу: %w", err)
+		return fmt.Errorf("coould not update service: %w", err)
 	}
 
 	return nil
@@ -117,7 +117,7 @@ func (r *repository) Update(service *models.Service) error {
 func (r *repository) Delete(serviceID int) error {
 	_, err := r.db.Exec(`DELETE FROM services WHERE service_id = $1`, serviceID)
 	if err != nil {
-		return fmt.Errorf("не удалось удалить услугу: %w", err)
+		return fmt.Errorf("coould not delete service: %w", err)
 	}
 	return nil
 }
@@ -153,7 +153,7 @@ func (r *repository) SearchServices(serviceType, location string) ([]ServiceWith
 
 	rows, err := r.db.Query(query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("ошибка поиска услуг: %w", err)
+		return nil, fmt.Errorf("error searching service: %w", err)
 	}
 	defer rows.Close()
 
@@ -170,7 +170,7 @@ func (r *repository) SearchServices(serviceType, location string) ([]ServiceWith
 			&service.SitterRating,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("ошибка сканирования услуги: %w", err)
+			return nil, fmt.Errorf("error scanning service: %w", err)
 		}
 		services = append(services, service)
 	}

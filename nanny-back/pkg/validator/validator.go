@@ -57,31 +57,31 @@ func getErrorMessage(err validator.FieldError) string {
 
 	switch err.Tag() {
 	case "required":
-		return fmt.Sprintf("%s обязательно для заполнения", field)
+		return fmt.Sprintf("%s requiered to fill", field)
 	case "email":
-		return fmt.Sprintf("%s должен быть корректным email адресом", field)
+		return fmt.Sprintf("%s must be correct email address", field)
 	case "min":
-		return fmt.Sprintf("%s должно быть не менее %s символов", field, err.Param())
+		return fmt.Sprintf("%s must be atleast %s symbols", field, err.Param())
 	case "max":
-		return fmt.Sprintf("%s должно быть не более %s символов", field, err.Param())
+		return fmt.Sprintf("%s must be not larger than %s symbols", field, err.Param())
 	case "gte":
-		return fmt.Sprintf("%s должно быть не менее %s", field, err.Param())
+		return fmt.Sprintf("%s must be not less than %s", field, err.Param())
 	case "lte":
-		return fmt.Sprintf("%s должно быть не более %s", field, err.Param())
+		return fmt.Sprintf("%s must be not more than %s", field, err.Param())
 	case "gt":
-		return fmt.Sprintf("%s должно быть больше %s", field, err.Param())
+		return fmt.Sprintf("%s must be more %s", field, err.Param())
 	case "lt":
-		return fmt.Sprintf("%s должно быть меньше %s", field, err.Param())
+		return fmt.Sprintf("%s must be less %s", field, err.Param())
 	case "phone_kz":
-		return fmt.Sprintf("%s должен быть в формате +7XXXXXXXXXX", field)
+		return fmt.Sprintf("%s must be in this format: +7XXXXXXXXXX", field)
 	case "pet_type":
-		return fmt.Sprintf("%s должен быть одним из: собака, кошка, птица, грызун, рептилия, другое", field)
+		return fmt.Sprintf("%s must be one of: dog, cat, bird, rat, raptile, other", field)
 	case "booking_status":
-		return fmt.Sprintf("%s должен быть одним из: pending, confirmed, cancelled, completed", field)
+		return fmt.Sprintf("%s must be one of: pending, confirmed, cancelled, completed", field)
 	case "user_role":
-		return fmt.Sprintf("%s должен быть одним из: owner, sitter, admin", field)
+		return fmt.Sprintf("%s must be one of: owner, sitter, admin", field)
 	default:
-		return fmt.Sprintf("%s не прошло валидацию (%s)", field, err.Tag())
+		return fmt.Sprintf("%s did not do validation (%s)", field, err.Tag())
 	}
 }
 
@@ -126,7 +126,7 @@ func validateKazakhPhone(fl validator.FieldLevel) bool {
 
 func validatePetType(fl validator.FieldLevel) bool {
 	petType := strings.ToLower(fl.Field().String())
-	validTypes := []string{"собака", "кошка", "птица", "грызун", "рептилия", "другое"}
+	validTypes := []string{"dog", "cat", "bird", "rat", "raptile", "other"}
 
 	for _, valid := range validTypes {
 		if petType == valid {

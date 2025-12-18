@@ -53,7 +53,7 @@ func TestHandler_CreatePet_Success(t *testing.T) {
 	reqBody := CreatePetRequest{
 		OwnerID: 1,
 		Name:    "Мурка",
-		Type:    "кошка", // ВАЖНО: pet_type на русском
+		Type:    "кошка",
 		Age:     3,
 		Notes:   "спокойная",
 	}
@@ -135,7 +135,7 @@ func TestHandler_UpdatePet_Success(t *testing.T) {
 
 	reqBody := UpdatePetRequest{
 		Name:  "Мурка обновлённая",
-		Type:  "кошка", // ВАЖНО
+		Type:  "кошка",
 		Age:   4,
 		Notes: "обновлено",
 	}

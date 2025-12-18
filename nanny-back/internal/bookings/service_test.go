@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// MockRepository is a mock implementation of Repository interface
 type MockRepository struct {
 	mock.Mock
 }
@@ -48,7 +47,6 @@ func (m *MockRepository) Delete(bookingID int) error {
 	return args.Error(0)
 }
 
-// TestCreateBooking_Success tests successful booking creation
 func TestCreateBooking_Success(t *testing.T) {
 	mockRepo := new(MockRepository)
 	service := NewService(mockRepo)
@@ -71,47 +69,37 @@ func TestCreateBooking_Success(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
-// TestCreateBooking_EndTimeBeforeStartTime tests validation for invalid time range
 func TestCreateBooking_EndTimeBeforeStartTime(t *testing.T) {
-	// Arrange
 	mockRepo := new(MockRepository)
 	service := NewService(mockRepo)
 
 	startTime := time.Now().Add(24 * time.Hour)
-	endTime := startTime.Add(-1 * time.Hour) // Invalid: end before start
+	endTime := startTime.Add(-1 * time.Hour)
 
-	// Act
 	bookingID, err := service.CreateBooking(1, 2, 3, 4, startTime, endTime)
 
-	// Assert
 	assert.Error(t, err)
 	assert.Equal(t, 0, bookingID)
-	assert.Contains(t, err.Error(), "время начала не может быть позже")
+	assert.Contains(t, err.Error(), "start date cannot be later")
 	mockRepo.AssertNotCalled(t, "Create")
 }
 
-// TestCreateBooking_StartTimeInPast tests validation for past booking
 func TestCreateBooking_StartTimeInPast(t *testing.T) {
-	// Arrange
 	mockRepo := new(MockRepository)
 	service := NewService(mockRepo)
 
-	startTime := time.Now().Add(-1 * time.Hour) // In the past
+	startTime := time.Now().Add(-1 * time.Hour)
 	endTime := time.Now().Add(1 * time.Hour)
 
-	// Act
 	bookingID, err := service.CreateBooking(1, 2, 3, 4, startTime, endTime)
 
-	// Assert
 	assert.Error(t, err)
 	assert.Equal(t, 0, bookingID)
-	assert.Contains(t, err.Error(), "нельзя создать бронирование в прошлом")
+	assert.Contains(t, err.Error(), "cannot create a booking in the past time")
 	mockRepo.AssertNotCalled(t, "Create")
 }
 
-// TestCreateBooking_RepositoryError tests error handling from repository
 func TestCreateBooking_RepositoryError(t *testing.T) {
-	// Arrange
 	mockRepo := new(MockRepository)
 	service := NewService(mockRepo)
 
@@ -120,19 +108,15 @@ func TestCreateBooking_RepositoryError(t *testing.T) {
 
 	mockRepo.On("Create", mock.Anything).Return(0, errors.New("database error"))
 
-	// Act
 	bookingID, err := service.CreateBooking(1, 2, 3, 4, startTime, endTime)
 
-	// Assert
 	assert.Error(t, err)
 	assert.Equal(t, 0, bookingID)
-	assert.Contains(t, err.Error(), "ошибка создания бронирования")
+	assert.Contains(t, err.Error(), "error creating booking")
 	mockRepo.AssertExpectations(t)
 }
 
-// TestGetBookingByID_Success tests successful retrieval of booking
 func TestGetBookingByID_Success(t *testing.T) {
-	// Arrange
 	mockRepo := new(MockRepository)
 	service := NewService(mockRepo)
 
@@ -145,35 +129,27 @@ func TestGetBookingByID_Success(t *testing.T) {
 
 	mockRepo.On("GetByID", 1).Return(expectedBooking, nil)
 
-	// Act
 	booking, err := service.GetBookingByID(1)
 
-	// Assert
 	assert.NoError(t, err)
 	assert.Equal(t, expectedBooking, booking)
 	mockRepo.AssertExpectations(t)
 }
 
-// TestGetBookingByID_NotFound tests error when booking not found
 func TestGetBookingByID_NotFound(t *testing.T) {
-	// Arrange
 	mockRepo := new(MockRepository)
 	service := NewService(mockRepo)
 
 	mockRepo.On("GetByID", 999).Return((*models.Booking)(nil), errors.New("booking not found"))
 
-	// Act
 	booking, err := service.GetBookingByID(999)
 
-	// Assert
 	assert.Error(t, err)
 	assert.Nil(t, booking)
 	mockRepo.AssertExpectations(t)
 }
 
-// TestConfirmBooking_Success tests successful booking confirmation
 func TestConfirmBooking_Success(t *testing.T) {
-	// Arrange
 	mockRepo := new(MockRepository)
 	service := NewService(mockRepo)
 
@@ -185,39 +161,31 @@ func TestConfirmBooking_Success(t *testing.T) {
 	mockRepo.On("GetByID", 1).Return(existingBooking, nil)
 	mockRepo.On("UpdateStatus", 1, "confirmed").Return(nil)
 
-	// Act
 	err := service.ConfirmBooking(1)
 
-	// Assert
 	assert.NoError(t, err)
 	mockRepo.AssertExpectations(t)
 }
 
-// TestConfirmBooking_InvalidStatus tests confirmation of non-pending booking
 func TestConfirmBooking_InvalidStatus(t *testing.T) {
-	// Arrange
 	mockRepo := new(MockRepository)
 	service := NewService(mockRepo)
 
 	existingBooking := &models.Booking{
 		BookingID: 1,
-		Status:    "confirmed", // Already confirmed
+		Status:    "confirmed",
 	}
 
 	mockRepo.On("GetByID", 1).Return(existingBooking, nil)
 
-	// Act
 	err := service.ConfirmBooking(1)
 
-	// Assert
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "можно подтвердить только бронирование со статусом 'pending'")
+	assert.Contains(t, err.Error(), "can approve only booking with status 'pending'")
 	mockRepo.AssertNotCalled(t, "UpdateStatus")
 }
 
-// TestCancelBooking_Success tests successful booking cancellation
 func TestCancelBooking_Success(t *testing.T) {
-	// Arrange
 	mockRepo := new(MockRepository)
 	service := NewService(mockRepo)
 
@@ -229,17 +197,13 @@ func TestCancelBooking_Success(t *testing.T) {
 	mockRepo.On("GetByID", 1).Return(existingBooking, nil)
 	mockRepo.On("UpdateStatus", 1, "cancelled").Return(nil)
 
-	// Act
 	err := service.CancelBooking(1)
 
-	// Assert
 	assert.NoError(t, err)
 	mockRepo.AssertExpectations(t)
 }
 
-// TestCancelBooking_CompletedBooking tests cancellation of completed booking
 func TestCancelBooking_CompletedBooking(t *testing.T) {
-	// Arrange
 	mockRepo := new(MockRepository)
 	service := NewService(mockRepo)
 
@@ -250,18 +214,14 @@ func TestCancelBooking_CompletedBooking(t *testing.T) {
 
 	mockRepo.On("GetByID", 1).Return(existingBooking, nil)
 
-	// Act
 	err := service.CancelBooking(1)
 
-	// Assert
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "нельзя отменить завершённое бронирование")
+	assert.Contains(t, err.Error(), "cannot cancel completed booking")
 	mockRepo.AssertNotCalled(t, "UpdateStatus")
 }
 
-// TestCompleteBooking_Success tests successful booking completion
 func TestCompleteBooking_Success(t *testing.T) {
-	// Arrange
 	mockRepo := new(MockRepository)
 	service := NewService(mockRepo)
 
@@ -273,17 +233,13 @@ func TestCompleteBooking_Success(t *testing.T) {
 	mockRepo.On("GetByID", 1).Return(existingBooking, nil)
 	mockRepo.On("UpdateStatus", 1, "completed").Return(nil)
 
-	// Act
 	err := service.CompleteBooking(1)
 
-	// Assert
 	assert.NoError(t, err)
 	mockRepo.AssertExpectations(t)
 }
 
-// TestCompleteBooking_NotConfirmed tests completion of non-confirmed booking
 func TestCompleteBooking_NotConfirmed(t *testing.T) {
-	// Arrange
 	mockRepo := new(MockRepository)
 	service := NewService(mockRepo)
 
@@ -294,18 +250,14 @@ func TestCompleteBooking_NotConfirmed(t *testing.T) {
 
 	mockRepo.On("GetByID", 1).Return(existingBooking, nil)
 
-	// Act
 	err := service.CompleteBooking(1)
 
-	// Assert
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "можно завершить только подтверждённое бронирование")
+	assert.Contains(t, err.Error(), "can only finish accepted booking")
 	mockRepo.AssertNotCalled(t, "UpdateStatus")
 }
 
-// TestGetOwnerBookings_Success tests retrieval of owner's bookings
 func TestGetOwnerBookings_Success(t *testing.T) {
-	// Arrange
 	mockRepo := new(MockRepository)
 	service := NewService(mockRepo)
 
@@ -316,19 +268,15 @@ func TestGetOwnerBookings_Success(t *testing.T) {
 
 	mockRepo.On("GetByOwnerID", 5).Return(expectedBookings, nil)
 
-	// Act
 	bookings, err := service.GetOwnerBookings(5)
 
-	// Assert
 	assert.NoError(t, err)
 	assert.Len(t, bookings, 2)
 	assert.Equal(t, expectedBookings, bookings)
 	mockRepo.AssertExpectations(t)
 }
 
-// TestGetSitterBookings_Success tests retrieval of sitter's bookings
 func TestGetSitterBookings_Success(t *testing.T) {
-	// Arrange
 	mockRepo := new(MockRepository)
 	service := NewService(mockRepo)
 
@@ -340,10 +288,8 @@ func TestGetSitterBookings_Success(t *testing.T) {
 
 	mockRepo.On("GetBySitterID", 10).Return(expectedBookings, nil)
 
-	// Act
 	bookings, err := service.GetSitterBookings(10)
 
-	// Assert
 	assert.NoError(t, err)
 	assert.Len(t, bookings, 3)
 	assert.Equal(t, expectedBookings, bookings)

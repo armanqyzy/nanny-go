@@ -28,11 +28,11 @@ func NewService(repo Repository) Service {
 func (s *service) CreateBooking(ownerID, sitterID, petID, serviceID int, startTime, endTime time.Time) (int, error) {
 
 	if startTime.After(endTime) {
-		return 0, fmt.Errorf("время начала не может быть позже времени окончания")
+		return 0, fmt.Errorf("start data cannot be after end data")
 	}
 
 	if startTime.Before(time.Now()) {
-		return 0, fmt.Errorf("нельзя создать бронирование в прошлом")
+		return 0, fmt.Errorf("cannot create booking in the past")
 	}
 
 	booking := &models.Booking{
@@ -47,7 +47,7 @@ func (s *service) CreateBooking(ownerID, sitterID, petID, serviceID int, startTi
 
 	bookingID, err := s.repo.Create(booking)
 	if err != nil {
-		return 0, fmt.Errorf("ошибка создания бронирования: %w", err)
+		return 0, fmt.Errorf("error creating booking: %w", err)
 	}
 
 	return bookingID, nil
@@ -73,7 +73,7 @@ func (s *service) ConfirmBooking(bookingID int) error {
 	}
 
 	if booking.Status != "pending" {
-		return fmt.Errorf("можно подтвердить только бронирование со статусом 'pending'")
+		return fmt.Errorf("can complete only booking with status 'pending'")
 	}
 
 	return s.repo.UpdateStatus(bookingID, "confirmed")
@@ -86,7 +86,7 @@ func (s *service) CancelBooking(bookingID int) error {
 	}
 
 	if booking.Status == "completed" {
-		return fmt.Errorf("нельзя отменить завершённое бронирование")
+		return fmt.Errorf("cannot cancel completed booking")
 	}
 
 	return s.repo.UpdateStatus(bookingID, "cancelled")
@@ -99,7 +99,7 @@ func (s *service) CompleteBooking(bookingID int) error {
 	}
 
 	if booking.Status != "confirmed" {
-		return fmt.Errorf("можно завершить только подтверждённое бронирование")
+		return fmt.Errorf("can complete only accepted booking")
 	}
 
 	return s.repo.UpdateStatus(bookingID, "completed")

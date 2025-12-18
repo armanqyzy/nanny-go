@@ -36,7 +36,7 @@ type UpdatePetRequest struct {
 func (h *Handler) CreatePet(w http.ResponseWriter, r *http.Request) {
 	var req CreatePetRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверные данные")
+		respondWithError(w, http.StatusBadRequest, "incorrect data")
 		return
 	}
 
@@ -52,7 +52,7 @@ func (h *Handler) CreatePet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusCreated, map[string]interface{}{
-		"message": "питомец создан успешно",
+		"message": "pet created succesfully",
 		"pet_id":  petID,
 	})
 }
@@ -61,12 +61,12 @@ func (h *Handler) GetPet(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	petID, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверный ID питомца")
+		respondWithError(w, http.StatusBadRequest, "incorrect ID pet")
 		return
 	}
 
 	if petID <= 0 {
-		respondWithError(w, http.StatusBadRequest, "ID питомца должен быть положительным числом")
+		respondWithError(w, http.StatusBadRequest, "ID pet must be positive")
 		return
 	}
 
@@ -83,12 +83,12 @@ func (h *Handler) GetOwnerPets(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	ownerID, err := strconv.Atoi(vars["owner_id"])
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверный ID владельца")
+		respondWithError(w, http.StatusBadRequest, "incorrect ID owner")
 		return
 	}
 
 	if ownerID <= 0 {
-		respondWithError(w, http.StatusBadRequest, "ID владельца должен быть положительным числом")
+		respondWithError(w, http.StatusBadRequest, "ID owner must be positive")
 		return
 	}
 
@@ -105,18 +105,18 @@ func (h *Handler) UpdatePet(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	petID, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверный ID питомца")
+		respondWithError(w, http.StatusBadRequest, "incorrect ID pet")
 		return
 	}
 
 	if petID <= 0 {
-		respondWithError(w, http.StatusBadRequest, "ID питомца должен быть положительным числом")
+		respondWithError(w, http.StatusBadRequest, "ID pet must be positive")
 		return
 	}
 
 	var req UpdatePetRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверные данные")
+		respondWithError(w, http.StatusBadRequest, "incorrect data")
 		return
 	}
 
@@ -132,7 +132,7 @@ func (h *Handler) UpdatePet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusOK, map[string]string{
-		"message": "питомец обновлён успешно",
+		"message": "pet updated succefully",
 	})
 }
 
@@ -140,12 +140,12 @@ func (h *Handler) DeletePet(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	petID, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверный ID питомца")
+		respondWithError(w, http.StatusBadRequest, "incorrect ID pet")
 		return
 	}
 
 	if petID <= 0 {
-		respondWithError(w, http.StatusBadRequest, "ID питомца должен быть положительным числом")
+		respondWithError(w, http.StatusBadRequest, "ID pet must be positive")
 		return
 	}
 
@@ -156,7 +156,7 @@ func (h *Handler) DeletePet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusOK, map[string]string{
-		"message": "питомец удалён успешно",
+		"message": "pet deleted succesfully",
 	})
 }
 

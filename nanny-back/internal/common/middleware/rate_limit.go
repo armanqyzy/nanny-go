@@ -24,7 +24,7 @@ func getLimiter(ip string) *rate.Limiter {
 		return c.limiter
 	}
 
-	limiter := rate.NewLimiter(1, 5) // 1 req/sec, burst 5
+	limiter := rate.NewLimiter(1, 5)
 	clients[ip] = &client{limiter: limiter}
 	return limiter
 }

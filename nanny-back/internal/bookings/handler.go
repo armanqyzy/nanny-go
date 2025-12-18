@@ -25,7 +25,7 @@ type CreateBookingRequest struct {
 	PetID     int    `json:"pet_id" validate:"required,gt=0"`
 	ServiceID int    `json:"service_id" validate:"required,gt=0"`
 	StartTime string `json:"start_time" validate:"required"`
-	EndTime   string `json:"end_time" validate:"required"` 
+	EndTime   string `json:"end_time" validate:"required"`
 }
 
 func (h *Handler) CreateBooking(w http.ResponseWriter, r *http.Request) {

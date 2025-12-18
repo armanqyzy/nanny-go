@@ -31,11 +31,11 @@ func NewService(repo Repository) Service {
 func (s *service) CreateService(sitterID int, serviceType string, pricePerHour float64, description string) (int, error) {
 	validTypes := map[string]bool{"walking": true, "boarding": true, "home-care": true}
 	if !validTypes[serviceType] {
-		return 0, fmt.Errorf("неверный тип услуги. Допустимые значения: walking, boarding, home-care")
+		return 0, fmt.Errorf("incorrect type of service. Allowed: walking, boarding, home-care")
 	}
 
 	if pricePerHour <= 0 {
-		return 0, fmt.Errorf("цена должна быть больше 0")
+		return 0, fmt.Errorf("price must be more than 0")
 	}
 
 	srv := &models.Service{
@@ -47,7 +47,7 @@ func (s *service) CreateService(sitterID int, serviceType string, pricePerHour f
 
 	serviceID, err := s.repo.Create(srv)
 	if err != nil {
-		return 0, fmt.Errorf("ошибка создания услуги: %w", err)
+		return 0, fmt.Errorf("error creating service: %w", err)
 	}
 
 	return serviceID, nil
@@ -64,11 +64,11 @@ func (s *service) GetSitterServices(sitterID int) ([]models.Service, error) {
 func (s *service) UpdateService(serviceID int, serviceType string, pricePerHour float64, description string) error {
 	validTypes := map[string]bool{"walking": true, "boarding": true, "home-care": true}
 	if !validTypes[serviceType] {
-		return fmt.Errorf("неверный тип услуги. Допустимые значения: walking, boarding, home-care")
+		return fmt.Errorf("incorrect type of service. Allowed: walking, boarding, home-care")
 	}
 
 	if pricePerHour <= 0 {
-		return fmt.Errorf("цена должна быть больше 0")
+		return fmt.Errorf("price must be more than 0")
 	}
 
 	srv := &models.Service{
@@ -113,7 +113,7 @@ type UpdateServiceRequest struct {
 func (h *Handler) CreateService(w http.ResponseWriter, r *http.Request) {
 	var req CreateServiceRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверные данные")
+		respondWithError(w, http.StatusBadRequest, "incorrect data")
 		return
 	}
 
@@ -124,7 +124,7 @@ func (h *Handler) CreateService(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusCreated, map[string]interface{}{
-		"message":    "услуга создана успешно",
+		"message":    "service created succesfully",
 		"service_id": serviceID,
 	})
 }
@@ -133,7 +133,7 @@ func (h *Handler) GetService(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	serviceID, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверный ID услуги")
+		respondWithError(w, http.StatusBadRequest, "incorrect ID service")
 		return
 	}
 
@@ -150,7 +150,7 @@ func (h *Handler) GetSitterServices(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	sitterID, err := strconv.Atoi(vars["sitter_id"])
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверный ID няни")
+		respondWithError(w, http.StatusBadRequest, "incorrect ID nanny")
 		return
 	}
 
@@ -167,13 +167,13 @@ func (h *Handler) UpdateService(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	serviceID, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверный ID услуги")
+		respondWithError(w, http.StatusBadRequest, "incorrect ID service")
 		return
 	}
 
 	var req UpdateServiceRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверные данные")
+		respondWithError(w, http.StatusBadRequest, "incorrect data")
 		return
 	}
 
@@ -184,7 +184,7 @@ func (h *Handler) UpdateService(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusOK, map[string]string{
-		"message": "услуга обновлена успешно",
+		"message": "service updated succesfully",
 	})
 }
 
@@ -192,7 +192,7 @@ func (h *Handler) DeleteService(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	serviceID, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверный ID услуги")
+		respondWithError(w, http.StatusBadRequest, "incorrect ID service")
 		return
 	}
 
@@ -203,7 +203,7 @@ func (h *Handler) DeleteService(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusOK, map[string]string{
-		"message": "услуга удалена успешно",
+		"message": "service deleted succesfully",
 	})
 }
 

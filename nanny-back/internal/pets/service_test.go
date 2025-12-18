@@ -70,7 +70,7 @@ func TestCreatePet_InvalidType(t *testing.T) {
 	petID, err := service.CreatePet(
 		1,
 		"Buddy",
-		"dragon", // неверный тип
+		"dragon",
 		3,
 		"",
 	)
@@ -109,7 +109,7 @@ func TestGetPetByID_NotFound(t *testing.T) {
 
 	mockRepo.
 		On("GetByID", 99).
-		Return(nil, errors.New("питомец не найден"))
+		Return(nil, errors.New("pet not found"))
 
 	pet, err := service.GetPetByID(99)
 
@@ -165,7 +165,7 @@ func TestUpdatePet_InvalidType(t *testing.T) {
 	err := service.UpdatePet(
 		1,
 		"Name",
-		"dragon", //неверный тип
+		"dragon",
 		4,
 		"",
 	)
