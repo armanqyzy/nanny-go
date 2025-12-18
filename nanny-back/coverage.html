@@ -57,31 +57,31 @@
 				
 				<option value="file0">nanny-backend/cmd/api/main.go (0.0%)</option>
 				
-				<option value="file1">nanny-backend/internal/admin/handler.go (0.0%)</option>
+				<option value="file1">nanny-backend/internal/auth/handler.go (65.9%)</option>
 				
-				<option value="file2">nanny-backend/internal/admin/repository.go (0.0%)</option>
+				<option value="file2">nanny-backend/internal/auth/jwt.go (0.0%)</option>
 				
-				<option value="file3">nanny-backend/internal/admin/service.go (0.0%)</option>
+				<option value="file3">nanny-backend/internal/auth/repository.go (29.4%)</option>
 				
-				<option value="file4">nanny-backend/internal/auth/handler.go (65.9%)</option>
+				<option value="file4">nanny-backend/internal/auth/service.go (54.5%)</option>
 				
-				<option value="file5">nanny-backend/internal/auth/jwt.go (0.0%)</option>
+				<option value="file5">nanny-backend/internal/bookings/handler.go (40.5%)</option>
 				
-				<option value="file6">nanny-backend/internal/auth/repository.go (29.4%)</option>
+				<option value="file6">nanny-backend/internal/bookings/repository.go (81.8%)</option>
 				
-				<option value="file7">nanny-backend/internal/auth/service.go (54.5%)</option>
+				<option value="file7">nanny-backend/internal/bookings/service.go (90.3%)</option>
 				
-				<option value="file8">nanny-backend/internal/bookings/handler.go (40.5%)</option>
+				<option value="file8">nanny-backend/internal/common/database/database.go (0.0%)</option>
 				
-				<option value="file9">nanny-backend/internal/bookings/repository.go (81.0%)</option>
+				<option value="file9">nanny-backend/internal/common/handlers/health.go (0.0%)</option>
 				
-				<option value="file10">nanny-backend/internal/bookings/service.go (90.3%)</option>
+				<option value="file10">nanny-backend/internal/common/middleware/cors.go (0.0%)</option>
 				
-				<option value="file11">nanny-backend/internal/common/database/database.go (0.0%)</option>
+				<option value="file11">nanny-backend/internal/common/middleware/jwt.go (0.0%)</option>
 				
-				<option value="file12">nanny-backend/internal/common/middleware/cors.go (0.0%)</option>
+				<option value="file12">nanny-backend/internal/common/middleware/logger.go (0.0%)</option>
 				
-				<option value="file13">nanny-backend/internal/common/middleware/jwt.go (0.0%)</option>
+				<option value="file13">nanny-backend/internal/common/middleware/rate_limit.go (0.0%)</option>
 				
 				<option value="file14">nanny-backend/internal/pets/handler.go (53.9%)</option>
 				
@@ -95,15 +95,13 @@
 				
 				<option value="file19">nanny-backend/internal/reviews/service.go (91.7%)</option>
 				
-				<option value="file20">nanny-backend/internal/services/repository.go (0.0%)</option>
+				<option value="file20">nanny-backend/internal/workers/pool.go (0.0%)</option>
 				
-				<option value="file21">nanny-backend/internal/services/service.go (0.0%)</option>
+				<option value="file21">nanny-backend/pkg/config/config.go (0.0%)</option>
 				
-				<option value="file22">nanny-backend/pkg/config/config.go (0.0%)</option>
+				<option value="file22">nanny-backend/pkg/validator/validator.go (60.7%)</option>
 				
-				<option value="file23">nanny-backend/pkg/validator/validator.go (60.7%)</option>
-				
-				<option value="file24">nanny-backend/scripts/create_hash.go (0.0%)</option>
+				<option value="file23">nanny-backend/scripts/create_hash.go (0.0%)</option>
 				
 				</select>
 			</div>
@@ -129,9 +127,15 @@
 		<pre class="file" id="file0" style="display: none">package main
 
 import (
+        "context"
         "fmt"
         "log"
         "net/http"
+        "os"
+        "os/signal"
+        "sync"
+        "syscall"
+        "time"
 
         "github.com/gorilla/mux"
 
@@ -149,12 +153,18 @@ import (
 func main() <span class="cov0" title="0">{
         cfg := config.Load()
 
-        db, err := database.New(cfg.Database.ConnectionString())
+        // ========================
+        // Database (with retry)
+        // ========================
+        db, err := connectWithRetry(cfg.Database.ConnectionString(), 10, 3*time.Second)
         if err != nil </span><span class="cov0" title="0">{
-                log.Fatal("❌ Ошибка подключения к БД:", err)
+                log.Fatal("❌ Failed to connect to database:", err)
         }</span>
         <span class="cov0" title="0">defer db.Close()
 
+        // ========================
+        // Router
+        // ========================
         r := mux.NewRouter()
 
         setupAuthModule(r, db)
@@ -164,11 +174,137 @@ func main() <span class="cov0" title="0">{
         setupServicesModule(r, db)
         setupAdminModule(r, db)
 
+        handler := middleware.CORS(
+                middleware.RequestLogger(
+                        middleware.RateLimit(r),
+                ),
+        )
+
         addr := fmt.Sprintf(":%s", cfg.Server.Port)
-        fmt.Printf("✅ API server running on http://localhost%s\n", addr)
-        handler := middleware.CORS(r)
-        log.Fatal(http.ListenAndServe(addr, handler))</span>
+
+        srv := &amp;http.Server{
+                Addr:              addr,
+                Handler:           handler,
+                ReadHeaderTimeout: 10 * time.Second,
+                ReadTimeout:       15 * time.Second,
+                WriteTimeout:      15 * time.Second,
+                IdleTimeout:       60 * time.Second,
+        }
+
+        // ========================
+        // Background worker
+        // ========================
+        ctx, cancel := context.WithCancel(context.Background())
+        defer cancel()
+
+        var wg sync.WaitGroup
+        wg.Add(1)
+        go func() </span><span class="cov0" title="0">{
+                defer wg.Done()
+                startBookingExpirationWorker(ctx, db)
+        }</span>()
+
+        // ========================
+        // HTTP server
+        // ========================
+        <span class="cov0" title="0">go func() </span><span class="cov0" title="0">{
+                log.Printf("✅ API server started on %s\n", addr)
+                if err := srv.ListenAndServe(); err != nil &amp;&amp; err != http.ErrServerClosed </span><span class="cov0" title="0">{
+                        log.Fatalf("❌ HTTP server error: %v", err)
+                }</span>
+        }()
+
+        // ========================
+        // Graceful shutdown
+        // ========================
+        <span class="cov0" title="0">quit := make(chan os.Signal, 1)
+        signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+        &lt;-quit
+
+        log.Println("🛑 Shutting down application...")
+
+        cancel()
+
+        shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+        defer shutdownCancel()
+
+        if err := srv.Shutdown(shutdownCtx); err != nil </span><span class="cov0" title="0">{
+                log.Printf("❌ Forced shutdown: %v", err)
+        }</span> else<span class="cov0" title="0"> {
+                log.Println("✅ HTTP server stopped gracefully")
+        }</span>
+
+        <span class="cov0" title="0">wg.Wait()
+        log.Println("✅ Background worker stopped, application exited cleanly")</span>
 }
+
+// ========================
+// Helpers
+// ========================
+
+func connectWithRetry(dsn string, attempts int, delay time.Duration) (*database.Database, error) <span class="cov0" title="0">{
+        var db *database.Database
+        var err error
+
+        for i := 1; i &lt;= attempts; i++ </span><span class="cov0" title="0">{
+                db, err = database.New(dsn)
+                if err == nil </span><span class="cov0" title="0">{
+                        log.Println("✅ Connected to database")
+                        return db, nil
+                }</span>
+
+                <span class="cov0" title="0">log.Printf("⏳ DB connection failed (attempt %d/%d): %v", i, attempts, err)
+                time.Sleep(delay)</span>
+        }
+
+        <span class="cov0" title="0">return nil, err</span>
+}
+
+// ========================
+// Background worker
+// ========================
+
+func startBookingExpirationWorker(ctx context.Context, db *database.Database) <span class="cov0" title="0">{
+        ticker := time.NewTicker(1 * time.Hour)
+        defer ticker.Stop()
+
+        log.Println("🔄 Background worker started: booking expiration checker")
+
+        for </span><span class="cov0" title="0">{
+                select </span>{
+                case &lt;-ctx.Done():<span class="cov0" title="0">
+                        log.Println("⏹️ Background worker stopped")
+                        return</span>
+
+                case &lt;-ticker.C:<span class="cov0" title="0">
+                        checkExpiredBookings(ctx, db)</span>
+                }
+        }
+}
+
+func checkExpiredBookings(ctx context.Context, db *database.Database) <span class="cov0" title="0">{
+        query := `
+                UPDATE bookings
+                SET status = 'cancelled'
+                WHERE status = 'pending'
+                  AND start_time &lt; NOW() - INTERVAL '24 hours'
+        `
+
+        res, err := db.DB.ExecContext(ctx, query)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Printf("❌ Worker error updating expired bookings: %v", err)
+                return
+        }</span>
+
+        <span class="cov0" title="0">affected, _ := res.RowsAffected()
+        if affected &gt; 0 </span><span class="cov0" title="0">{
+                log.Printf("✅ Worker cancelled %d expired booking(s)", affected)
+        }</span>
+}
+
+// ========================
+// Modules
+// ========================
 
 func setupAuthModule(r *mux.Router, db *database.Database) <span class="cov0" title="0">{
         repo := auth.NewRepository(db.DB)
@@ -307,444 +443,7 @@ func setupAdminModule(r *mux.Router, db *database.Database) <span class="cov0" t
 }</span>
 </pre>
 		
-		<pre class="file" id="file1" style="display: none">package admin
-
-import (
-        "encoding/json"
-        "net/http"
-        "strconv"
-
-        "github.com/gorilla/mux"
-)
-
-type Handler struct {
-        service Service
-}
-
-func NewHandler(service Service) *Handler <span class="cov0" title="0">{
-        return &amp;Handler{service: service}
-}</span>
-
-func (h *Handler) GetPendingSitters(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
-        sitters, err := h.service.GetPendingSitters()
-        if err != nil </span><span class="cov0" title="0">{
-                respondWithError(w, http.StatusInternalServerError, err.Error())
-                return
-        }</span>
-
-        <span class="cov0" title="0">respondWithJSON(w, http.StatusOK, sitters)</span>
-}
-
-func (h *Handler) ApproveSitter(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
-        vars := mux.Vars(r)
-        sitterID, err := strconv.Atoi(vars["sitter_id"])
-        if err != nil </span><span class="cov0" title="0">{
-                respondWithError(w, http.StatusBadRequest, "неверный ID няни")
-                return
-        }</span>
-
-        <span class="cov0" title="0">err = h.service.ApproveSitter(sitterID)
-        if err != nil </span><span class="cov0" title="0">{
-                respondWithError(w, http.StatusBadRequest, err.Error())
-                return
-        }</span>
-
-        <span class="cov0" title="0">respondWithJSON(w, http.StatusOK, map[string]string{
-                "message": "няня одобрена успешно",
-        })</span>
-}
-
-func (h *Handler) RejectSitter(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
-        vars := mux.Vars(r)
-        sitterID, err := strconv.Atoi(vars["sitter_id"])
-        if err != nil </span><span class="cov0" title="0">{
-                respondWithError(w, http.StatusBadRequest, "неверный ID няни")
-                return
-        }</span>
-
-        <span class="cov0" title="0">err = h.service.RejectSitter(sitterID)
-        if err != nil </span><span class="cov0" title="0">{
-                respondWithError(w, http.StatusBadRequest, err.Error())
-                return
-        }</span>
-
-        <span class="cov0" title="0">respondWithJSON(w, http.StatusOK, map[string]string{
-                "message": "няня отклонена",
-        })</span>
-}
-
-func (h *Handler) GetAllUsers(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
-        users, err := h.service.GetAllUsers()
-        if err != nil </span><span class="cov0" title="0">{
-                respondWithError(w, http.StatusInternalServerError, err.Error())
-                return
-        }</span>
-
-        <span class="cov0" title="0">respondWithJSON(w, http.StatusOK, users)</span>
-}
-
-func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
-        vars := mux.Vars(r)
-        userID, err := strconv.Atoi(vars["user_id"])
-        if err != nil </span><span class="cov0" title="0">{
-                respondWithError(w, http.StatusBadRequest, "неверный ID пользователя")
-                return
-        }</span>
-
-        <span class="cov0" title="0">user, err := h.service.GetUser(userID)
-        if err != nil </span><span class="cov0" title="0">{
-                respondWithError(w, http.StatusNotFound, err.Error())
-                return
-        }</span>
-
-        <span class="cov0" title="0">respondWithJSON(w, http.StatusOK, user)</span>
-}
-
-func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
-        vars := mux.Vars(r)
-        userID, err := strconv.Atoi(vars["user_id"])
-        if err != nil </span><span class="cov0" title="0">{
-                respondWithError(w, http.StatusBadRequest, "неверный ID пользователя")
-                return
-        }</span>
-
-        <span class="cov0" title="0">err = h.service.DeleteUser(userID)
-        if err != nil </span><span class="cov0" title="0">{
-                respondWithError(w, http.StatusInternalServerError, err.Error())
-                return
-        }</span>
-
-        <span class="cov0" title="0">respondWithJSON(w, http.StatusOK, map[string]string{
-                "message": "пользователь удалён успешно",
-        })</span>
-}
-
-func (h *Handler) GetSitterDetails(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
-        vars := mux.Vars(r)
-        sitterID, err := strconv.Atoi(vars["sitter_id"])
-        if err != nil </span><span class="cov0" title="0">{
-                respondWithError(w, http.StatusBadRequest, "неверный ID няни")
-                return
-        }</span>
-
-        <span class="cov0" title="0">details, err := h.service.GetSitterDetails(sitterID)
-        if err != nil </span><span class="cov0" title="0">{
-                respondWithError(w, http.StatusNotFound, err.Error())
-                return
-        }</span>
-
-        <span class="cov0" title="0">respondWithJSON(w, http.StatusOK, details)</span>
-}
-
-func respondWithError(w http.ResponseWriter, code int, message string) <span class="cov0" title="0">{
-        respondWithJSON(w, code, map[string]string{"error": message})
-}</span>
-
-func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) <span class="cov0" title="0">{
-        w.Header().Set("Content-Type", "application/json")
-        w.WriteHeader(code)
-        json.NewEncoder(w).Encode(payload)
-}</span>
-</pre>
-		
-		<pre class="file" id="file2" style="display: none">package admin
-
-import (
-        "database/sql"
-        "fmt"
-
-        "nanny-backend/internal/common/models"
-)
-
-type Repository interface {
-        GetPendingSitters() ([]models.Sitter, error)
-        ApproveSitter(sitterID int) error
-        RejectSitter(sitterID int) error
-        GetAllUsers() ([]models.User, error)
-        GetUserByID(userID int) (*models.User, error)
-        DeleteUser(userID int) error
-        GetSitterDetails(sitterID int) (*SitterDetails, error)
-        UpdateSitterStatus(sitterID int, status string) error
-}
-
-type SitterDetails struct {
-        models.Sitter
-        FullName string  `json:"full_name"`
-        Email    string  `json:"email"`
-        Phone    string  `json:"phone"`
-        Rating   float64 `json:"rating"`
-        Reviews  int     `json:"reviews"`
-}
-
-type repository struct {
-        db *sql.DB
-}
-
-func NewRepository(db *sql.DB) Repository <span class="cov0" title="0">{
-        return &amp;repository{db: db}
-}</span>
-
-func (r *repository) GetPendingSitters() ([]models.Sitter, error) <span class="cov0" title="0">{
-        rows, err := r.db.Query(`
-                SELECT sitter_id, experience_years, certificates, preferences, location, status
-                FROM sitters
-                WHERE status = 'pending'
-                ORDER BY sitter_id DESC
-        `)
-
-        if err != nil </span><span class="cov0" title="0">{
-                return nil, fmt.Errorf("ошибка получения заявок: %w", err)
-        }</span>
-        <span class="cov0" title="0">defer rows.Close()
-
-        var sitters []models.Sitter
-        for rows.Next() </span><span class="cov0" title="0">{
-                var sitter models.Sitter
-                err := rows.Scan(
-                        &amp;sitter.SitterID,
-                        &amp;sitter.ExperienceYears,
-                        &amp;sitter.Certificates,
-                        &amp;sitter.Preferences,
-                        &amp;sitter.Location,
-                        &amp;sitter.Status,
-                )
-                if err != nil </span><span class="cov0" title="0">{
-                        return nil, fmt.Errorf("ошибка сканирования няни: %w", err)
-                }</span>
-                <span class="cov0" title="0">sitters = append(sitters, sitter)</span>
-        }
-
-        <span class="cov0" title="0">return sitters, nil</span>
-}
-
-func (r *repository) ApproveSitter(sitterID int) error <span class="cov0" title="0">{
-        _, err := r.db.Exec(`
-                UPDATE sitters
-                SET status = 'approved'
-                WHERE sitter_id = $1
-        `, sitterID)
-
-        if err != nil </span><span class="cov0" title="0">{
-                return fmt.Errorf("не удалось одобрить няню: %w", err)
-        }</span>
-
-        <span class="cov0" title="0">return nil</span>
-}
-
-func (r *repository) RejectSitter(sitterID int) error <span class="cov0" title="0">{
-        _, err := r.db.Exec(`
-                UPDATE sitters
-                SET status = 'rejected'
-                WHERE sitter_id = $1
-        `, sitterID)
-
-        if err != nil </span><span class="cov0" title="0">{
-                return fmt.Errorf("не удалось отклонить няню: %w", err)
-        }</span>
-
-        <span class="cov0" title="0">return nil</span>
-}
-
-func (r *repository) GetAllUsers() ([]models.User, error) <span class="cov0" title="0">{
-        rows, err := r.db.Query(`
-                SELECT user_id, full_name, email, phone, role, created_at
-                FROM users
-                ORDER BY created_at DESC
-        `)
-
-        if err != nil </span><span class="cov0" title="0">{
-                return nil, fmt.Errorf("ошибка получения пользователей: %w", err)
-        }</span>
-        <span class="cov0" title="0">defer rows.Close()
-
-        var users []models.User
-        for rows.Next() </span><span class="cov0" title="0">{
-                var user models.User
-                err := rows.Scan(
-                        &amp;user.UserID,
-                        &amp;user.FullName,
-                        &amp;user.Email,
-                        &amp;user.Phone,
-                        &amp;user.Role,
-                        &amp;user.CreatedAt,
-                )
-                if err != nil </span><span class="cov0" title="0">{
-                        return nil, fmt.Errorf("ошибка сканирования пользователя: %w", err)
-                }</span>
-                <span class="cov0" title="0">users = append(users, user)</span>
-        }
-
-        <span class="cov0" title="0">return users, nil</span>
-}
-
-func (r *repository) GetUserByID(userID int) (*models.User, error) <span class="cov0" title="0">{
-        user := &amp;models.User{}
-        err := r.db.QueryRow(`
-                SELECT user_id, full_name, email, phone, role, created_at
-                FROM users
-                WHERE user_id = $1
-        `, userID).Scan(
-                &amp;user.UserID,
-                &amp;user.FullName,
-                &amp;user.Email,
-                &amp;user.Phone,
-                &amp;user.Role,
-                &amp;user.CreatedAt,
-        )
-
-        if err == sql.ErrNoRows </span><span class="cov0" title="0">{
-                return nil, fmt.Errorf("пользователь не найден")
-        }</span>
-        <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
-                return nil, fmt.Errorf("ошибка получения пользователя: %w", err)
-        }</span>
-
-        <span class="cov0" title="0">return user, nil</span>
-}
-
-func (r *repository) DeleteUser(userID int) error <span class="cov0" title="0">{
-        _, err := r.db.Exec(`DELETE FROM users WHERE user_id = $1`, userID)
-        if err != nil </span><span class="cov0" title="0">{
-                return fmt.Errorf("не удалось удалить пользователя: %w", err)
-        }</span>
-        <span class="cov0" title="0">return nil</span>
-}
-
-func (r *repository) GetSitterDetails(sitterID int) (*SitterDetails, error) <span class="cov0" title="0">{
-        details := &amp;SitterDetails{}
-
-        err := r.db.QueryRow(`
-                SELECT 
-                        s.sitter_id, s.experience_years, s.certificates, s.preferences, s.location, s.status,
-                        u.full_name, u.email, u.phone,
-                        COALESCE(AVG(r.rating), 0) as rating,
-                        COUNT(r.review_id) as reviews
-                FROM sitters s
-                JOIN users u ON s.sitter_id = u.user_id
-                LEFT JOIN reviews r ON s.sitter_id = r.sitter_id
-                WHERE s.sitter_id = $1
-                GROUP BY s.sitter_id, u.full_name, u.email, u.phone
-        `, sitterID).Scan(
-                &amp;details.SitterID,
-                &amp;details.ExperienceYears,
-                &amp;details.Certificates,
-                &amp;details.Preferences,
-                &amp;details.Location,
-                &amp;details.Status,
-                &amp;details.FullName,
-                &amp;details.Email,
-                &amp;details.Phone,
-                &amp;details.Rating,
-                &amp;details.Reviews,
-        )
-
-        if err == sql.ErrNoRows </span><span class="cov0" title="0">{
-                return nil, fmt.Errorf("няня не найдена")
-        }</span>
-        <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
-                return nil, fmt.Errorf("ошибка получения деталей няни: %w", err)
-        }</span>
-
-        <span class="cov0" title="0">return details, nil</span>
-}
-
-func (r *repository) UpdateSitterStatus(sitterID int, status string) error <span class="cov0" title="0">{
-        _, err := r.db.Exec(`
-                UPDATE sitters
-                SET status = $1
-                WHERE sitter_id = $2
-        `, status, sitterID)
-
-        if err != nil </span><span class="cov0" title="0">{
-                return fmt.Errorf("не удалось обновить статус няни: %w", err)
-        }</span>
-
-        <span class="cov0" title="0">return nil</span>
-}
-</pre>
-		
-		<pre class="file" id="file3" style="display: none">package admin
-
-import (
-        "fmt"
-
-        "nanny-backend/internal/common/models"
-)
-
-type Service interface {
-        GetPendingSitters() ([]models.Sitter, error)
-        ApproveSitter(sitterID int) error
-        RejectSitter(sitterID int) error
-        GetAllUsers() ([]models.User, error)
-        GetUser(userID int) (*models.User, error)
-        DeleteUser(userID int) error
-        GetSitterDetails(sitterID int) (*SitterDetails, error)
-}
-
-type service struct {
-        repo Repository
-}
-
-func NewService(repo Repository) Service <span class="cov0" title="0">{
-        return &amp;service{repo: repo}
-}</span>
-
-func (s *service) GetPendingSitters() ([]models.Sitter, error) <span class="cov0" title="0">{
-        return s.repo.GetPendingSitters()
-}</span>
-
-func (s *service) ApproveSitter(sitterID int) error <span class="cov0" title="0">{
-        // Проверяем, что няня существует и в статусе pending
-        details, err := s.repo.GetSitterDetails(sitterID)
-        if err != nil </span><span class="cov0" title="0">{
-                return err
-        }</span>
-
-        <span class="cov0" title="0">if details.Status != "pending" </span><span class="cov0" title="0">{
-                return fmt.Errorf("можно одобрить только заявки в статусе 'pending'")
-        }</span>
-
-        <span class="cov0" title="0">return s.repo.ApproveSitter(sitterID)</span>
-}
-
-func (s *service) RejectSitter(sitterID int) error <span class="cov0" title="0">{
-        // Проверяем, что няня существует и в статусе pending
-        details, err := s.repo.GetSitterDetails(sitterID)
-        if err != nil </span><span class="cov0" title="0">{
-                return err
-        }</span>
-
-        <span class="cov0" title="0">if details.Status != "pending" </span><span class="cov0" title="0">{
-                return fmt.Errorf("можно отклонить только заявки в статусе 'pending'")
-        }</span>
-
-        <span class="cov0" title="0">return s.repo.RejectSitter(sitterID)</span>
-}
-
-func (s *service) GetAllUsers() ([]models.User, error) <span class="cov0" title="0">{
-        return s.repo.GetAllUsers()
-}</span>
-
-func (s *service) GetUser(userID int) (*models.User, error) <span class="cov0" title="0">{
-        return s.repo.GetUserByID(userID)
-}</span>
-
-func (s *service) DeleteUser(userID int) error <span class="cov0" title="0">{
-        // Проверяем, что пользователь существует
-        _, err := s.repo.GetUserByID(userID)
-        if err != nil </span><span class="cov0" title="0">{
-                return err
-        }</span>
-
-        <span class="cov0" title="0">return s.repo.DeleteUser(userID)</span>
-}
-
-func (s *service) GetSitterDetails(sitterID int) (*SitterDetails, error) <span class="cov0" title="0">{
-        return s.repo.GetSitterDetails(sitterID)
-}</span>
-</pre>
-		
-		<pre class="file" id="file4" style="display: none">package auth
+		<pre class="file" id="file1" style="display: none">package auth
 
 import (
         "encoding/json"
@@ -878,7 +577,7 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) <span
 }</span>
 </pre>
 		
-		<pre class="file" id="file5" style="display: none">package auth
+		<pre class="file" id="file2" style="display: none">package auth
 
 import (
         "time"
@@ -916,7 +615,7 @@ func GenerateJWT(user *models.User) (string, error) <span class="cov0" title="0"
 }</span>
 </pre>
 		
-		<pre class="file" id="file6" style="display: none">package auth
+		<pre class="file" id="file3" style="display: none">package auth
 
 import (
         "database/sql"
@@ -994,7 +693,7 @@ func (r *repository) CreateSitter(sitter *models.Sitter) error <span class="cov0
 }
 </pre>
 		
-		<pre class="file" id="file7" style="display: none">package auth
+		<pre class="file" id="file4" style="display: none">package auth
 
 import (
         "fmt"
@@ -1111,7 +810,7 @@ func (s *service) Login(email, password string) (*models.User, string, error) <s
 }
 </pre>
 		
-		<pre class="file" id="file8" style="display: none">package bookings
+		<pre class="file" id="file5" style="display: none">package bookings
 
 import (
         "encoding/json"
@@ -1354,14 +1053,14 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) <span
 }</span>
 </pre>
 		
-		<pre class="file" id="file9" style="display: none">package bookings
+		<pre class="file" id="file6" style="display: none">package bookings
 
 import (
+        "context"
         "database/sql"
         "fmt"
-        "time"
-
         "nanny-backend/internal/common/models"
+        "time"
 )
 
 type Repository interface {
@@ -1398,8 +1097,11 @@ func (r *repository) Create(booking *models.Booking) (int, error) <span class="c
 }
 
 func (r *repository) GetByID(bookingID int) (*models.Booking, error) <span class="cov6" title="2">{
+        ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+        defer cancel()
+
         booking := &amp;models.Booking{}
-        err := r.db.QueryRow(`
+        err := r.db.QueryRowContext(ctx, `
                 SELECT booking_id, owner_id, sitter_id, pet_id, service_id, start_time, end_time, status
                 FROM bookings
                 WHERE booking_id = $1
@@ -1507,7 +1209,7 @@ func scanBookings(rows *sql.Rows) ([]models.Booking, error) <span class="cov6" t
 }
 </pre>
 		
-		<pre class="file" id="file10" style="display: none">package bookings
+		<pre class="file" id="file7" style="display: none">package bookings
 
 import (
         "fmt"
@@ -1615,12 +1317,14 @@ func (s *service) CompleteBooking(bookingID int) error <span class="cov3" title=
 }
 </pre>
 		
-		<pre class="file" id="file11" style="display: none">package database
+		<pre class="file" id="file8" style="display: none">package database
 
 import (
+        "context"
         "database/sql"
         "fmt"
         "log"
+        "time"
 
         _ "github.com/lib/pq"
 )
@@ -1629,33 +1333,53 @@ type Database struct {
         DB *sql.DB
 }
 
+// New инициализирует подключение к PostgreSQL
 func New(connStr string) (*Database, error) <span class="cov0" title="0">{
         db, err := sql.Open("postgres", connStr)
         if err != nil </span><span class="cov0" title="0">{
-                return nil, fmt.Errorf("ошибка открытия БД: %w", err)
+                return nil, fmt.Errorf("failed to open database connection: %w", err)
         }</span>
 
-        <span class="cov0" title="0">if err := db.Ping(); err != nil </span><span class="cov0" title="0">{
-                return nil, fmt.Errorf("не удалось подключиться к БД: %w", err)
+        // ========================
+        // Connection pool settings
+        // ========================
+        <span class="cov0" title="0">db.SetMaxOpenConns(25)
+        db.SetMaxIdleConns(25)
+        db.SetConnMaxLifetime(5 * time.Minute)
+
+        // ========================
+        // Ping with timeout
+        // ========================
+        ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+        defer cancel()
+
+        if err := db.PingContext(ctx); err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("failed to ping database: %w", err)
         }</span>
 
-        <span class="cov0" title="0">var count int
-        err = db.QueryRow("SELECT COUNT(*) FROM users").Scan(&amp;count)
-        if err != nil </span><span class="cov0" title="0">{
-                log.Printf("⚠️ Предупреждение: таблица users может быть недоступна: %v", err)
-        }</span> else<span class="cov0" title="0"> {
-                log.Printf("✅ Подключено к БД. В таблице users: %d записей", count)
-        }</span>
+        <span class="cov0" title="0">log.Println("✅ Database connection established")
 
-        <span class="cov0" title="0">return &amp;Database{DB: db}, nil</span>
+        return &amp;Database{DB: db}, nil</span>
 }
 
+// Close закрывает соединение с БД
 func (d *Database) Close() error <span class="cov0" title="0">{
+        log.Println("🔌 Closing database connection")
         return d.DB.Close()
 }</span>
 </pre>
 		
-		<pre class="file" id="file12" style="display: none">package middleware
+		<pre class="file" id="file9" style="display: none">package handlers
+
+import "net/http"
+
+func HealthCheck(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+        w.WriteHeader(http.StatusOK)
+        w.Write([]byte("OK"))
+}</span>
+</pre>
+		
+		<pre class="file" id="file10" style="display: none">package middleware
 
 import "net/http"
 
@@ -1676,7 +1400,7 @@ func CORS(next http.Handler) http.Handler <span class="cov0" title="0">{
 }
 </pre>
 		
-		<pre class="file" id="file13" style="display: none">package middleware
+		<pre class="file" id="file11" style="display: none">package middleware
 
 import (
         "context"
@@ -1748,6 +1472,76 @@ func AuthMiddleware(next http.Handler) http.Handler <span class="cov0" title="0"
                 ctx = context.WithValue(ctx, UserRoleKey, role)
 
                 next.ServeHTTP(w, r.WithContext(ctx))</span>
+        })
+}
+</pre>
+		
+		<pre class="file" id="file12" style="display: none">package middleware
+
+import (
+        "log"
+        "net/http"
+        "time"
+)
+
+func RequestLogger(next http.Handler) http.Handler <span class="cov0" title="0">{
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) </span><span class="cov0" title="0">{
+                start := time.Now()
+
+                next.ServeHTTP(w, r)
+
+                log.Printf(
+                        "%s %s %s",
+                        r.Method,
+                        r.URL.Path,
+                        time.Since(start),
+                )
+        }</span>)
+}
+</pre>
+		
+		<pre class="file" id="file13" style="display: none">package middleware
+
+import (
+        "net/http"
+        "sync"
+
+        "golang.org/x/time/rate"
+)
+
+type client struct {
+        limiter *rate.Limiter
+}
+
+var (
+        mu      sync.Mutex
+        clients = make(map[string]*client)
+)
+
+func getLimiter(ip string) *rate.Limiter <span class="cov0" title="0">{
+        mu.Lock()
+        defer mu.Unlock()
+
+        if c, exists := clients[ip]; exists </span><span class="cov0" title="0">{
+                return c.limiter
+        }</span>
+
+        <span class="cov0" title="0">limiter := rate.NewLimiter(1, 5) // 1 req/sec, burst 5
+        clients[ip] = &amp;client{limiter: limiter}
+        return limiter</span>
+}
+
+func RateLimit(next http.Handler) http.Handler <span class="cov0" title="0">{
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) </span><span class="cov0" title="0">{
+                ip := r.RemoteAddr
+                limiter := getLimiter(ip)
+
+                if !limiter.Allow() </span><span class="cov0" title="0">{
+                        http.Error(w, "Too many requests", http.StatusTooManyRequests)
+                        return
+                }</span>
+
+                <span class="cov0" title="0">next.ServeHTTP(w, r)</span>
         })
 }
 </pre>
@@ -2607,421 +2401,48 @@ func (s *service) GetSitterRating(sitterID int) (float64, int, error) <span clas
 }</span>
 </pre>
 		
-		<pre class="file" id="file20" style="display: none">package services
+		<pre class="file" id="file20" style="display: none">package workers
 
 import (
-        "database/sql"
-        "fmt"
-
-        "nanny-backend/internal/common/models"
+        "log"
 )
 
-type Repository interface {
-        Create(service *models.Service) (int, error)
-        GetByID(serviceID int) (*models.Service, error)
-        GetBySitterID(sitterID int) ([]models.Service, error)
-        Update(service *models.Service) error
-        Delete(serviceID int) error
-        SearchServices(serviceType, location string) ([]ServiceWithSitter, error)
+type Job func()
+
+type WorkerPool struct {
+        jobs chan Job
 }
 
-type ServiceWithSitter struct {
-        models.Service
-        SitterName   string  `json:"sitter_name"`
-        SitterRating float64 `json:"sitter_rating"`
-}
-
-type repository struct {
-        db *sql.DB
-}
-
-func NewRepository(db *sql.DB) Repository <span class="cov0" title="0">{
-        return &amp;repository{db: db}
-}</span>
-
-func (r *repository) Create(service *models.Service) (int, error) <span class="cov0" title="0">{
-        var serviceID int
-        err := r.db.QueryRow(`
-                INSERT INTO services (sitter_id, type, price_per_hour, description)
-                VALUES ($1, $2, $3, $4)
-                RETURNING service_id
-        `, service.SitterID, service.Type, service.PricePerHour, service.Description).Scan(&amp;serviceID)
-
-        if err != nil </span><span class="cov0" title="0">{
-                return 0, fmt.Errorf("не удалось создать услугу: %w", err)
-        }</span>
-
-        <span class="cov0" title="0">return serviceID, nil</span>
-}
-
-func (r *repository) GetByID(serviceID int) (*models.Service, error) <span class="cov0" title="0">{
-        service := &amp;models.Service{}
-        err := r.db.QueryRow(`
-                SELECT service_id, sitter_id, type, price_per_hour, description
-                FROM services
-                WHERE service_id = $1
-        `, serviceID).Scan(
-                &amp;service.ServiceID,
-                &amp;service.SitterID,
-                &amp;service.Type,
-                &amp;service.PricePerHour,
-                &amp;service.Description,
-        )
-
-        if err == sql.ErrNoRows </span><span class="cov0" title="0">{
-                return nil, fmt.Errorf("услуга не найдена")
-        }</span>
-        <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
-                return nil, fmt.Errorf("ошибка получения услуги: %w", err)
-        }</span>
-
-        <span class="cov0" title="0">return service, nil</span>
-}
-
-func (r *repository) GetBySitterID(sitterID int) ([]models.Service, error) <span class="cov0" title="0">{
-        rows, err := r.db.Query(`
-                SELECT service_id, sitter_id, type, price_per_hour, description
-                FROM services
-                WHERE sitter_id = $1
-        `, sitterID)
-
-        if err != nil </span><span class="cov0" title="0">{
-                return nil, fmt.Errorf("ошибка получения услуг: %w", err)
-        }</span>
-        <span class="cov0" title="0">defer rows.Close()
-
-        var services []models.Service
-        for rows.Next() </span><span class="cov0" title="0">{
-                var service models.Service
-                err := rows.Scan(
-                        &amp;service.ServiceID,
-                        &amp;service.SitterID,
-                        &amp;service.Type,
-                        &amp;service.PricePerHour,
-                        &amp;service.Description,
-                )
-                if err != nil </span><span class="cov0" title="0">{
-                        return nil, fmt.Errorf("ошибка сканирования услуги: %w", err)
-                }</span>
-                <span class="cov0" title="0">services = append(services, service)</span>
+func NewWorkerPool(workerCount int) *WorkerPool <span class="cov0" title="0">{
+        pool := &amp;WorkerPool{
+                jobs: make(chan Job),
         }
 
-        <span class="cov0" title="0">return services, nil</span>
-}
-
-func (r *repository) Update(service *models.Service) error <span class="cov0" title="0">{
-        _, err := r.db.Exec(`
-                UPDATE services
-                SET type = $1, price_per_hour = $2, description = $3
-                WHERE service_id = $4
-        `, service.Type, service.PricePerHour, service.Description, service.ServiceID)
-
-        if err != nil </span><span class="cov0" title="0">{
-                return fmt.Errorf("не удалось обновить услугу: %w", err)
+        for i := 0; i &lt; workerCount; i++ </span><span class="cov0" title="0">{
+                go pool.worker(i)
         }</span>
 
-        <span class="cov0" title="0">return nil</span>
+        <span class="cov0" title="0">return pool</span>
 }
 
-func (r *repository) Delete(serviceID int) error <span class="cov0" title="0">{
-        _, err := r.db.Exec(`DELETE FROM services WHERE service_id = $1`, serviceID)
-        if err != nil </span><span class="cov0" title="0">{
-                return fmt.Errorf("не удалось удалить услугу: %w", err)
+func (p *WorkerPool) worker(id int) <span class="cov0" title="0">{
+        for job := range p.jobs </span><span class="cov0" title="0">{
+                log.Printf("Worker %d started job", id)
+                job()
+                log.Printf("Worker %d finished job", id)
         }</span>
-        <span class="cov0" title="0">return nil</span>
 }
 
-func (r *repository) SearchServices(serviceType, location string) ([]ServiceWithSitter, error) <span class="cov0" title="0">{
-        query := `
-                SELECT 
-                        s.service_id, s.sitter_id, s.type, s.price_per_hour, s.description,
-                        u.full_name as sitter_name,
-                        COALESCE(AVG(r.rating), 0) as sitter_rating
-                FROM services s
-                JOIN sitters st ON s.sitter_id = st.sitter_id
-                JOIN users u ON st.sitter_id = u.user_id
-                LEFT JOIN reviews r ON st.sitter_id = r.sitter_id
-                WHERE st.status = 'approved'
-        `
-
-        args := []interface{}{}
-        argCount := 1
-
-        if serviceType != "" </span><span class="cov0" title="0">{
-                query += fmt.Sprintf(" AND s.type = $%d", argCount)
-                args = append(args, serviceType)
-                argCount++
-        }</span>
-
-        <span class="cov0" title="0">if location != "" </span><span class="cov0" title="0">{
-                query += fmt.Sprintf(" AND st.location ILIKE $%d", argCount)
-                args = append(args, "%"+location+"%")
-        }</span>
-
-        <span class="cov0" title="0">query += " GROUP BY s.service_id, u.full_name ORDER BY sitter_rating DESC"
-
-        rows, err := r.db.Query(query, args...)
-        if err != nil </span><span class="cov0" title="0">{
-                return nil, fmt.Errorf("ошибка поиска услуг: %w", err)
-        }</span>
-        <span class="cov0" title="0">defer rows.Close()
-
-        var services []ServiceWithSitter
-        for rows.Next() </span><span class="cov0" title="0">{
-                var service ServiceWithSitter
-                err := rows.Scan(
-                        &amp;service.ServiceID,
-                        &amp;service.SitterID,
-                        &amp;service.Type,
-                        &amp;service.PricePerHour,
-                        &amp;service.Description,
-                        &amp;service.SitterName,
-                        &amp;service.SitterRating,
-                )
-                if err != nil </span><span class="cov0" title="0">{
-                        return nil, fmt.Errorf("ошибка сканирования услуги: %w", err)
-                }</span>
-                <span class="cov0" title="0">services = append(services, service)</span>
-        }
-
-        <span class="cov0" title="0">return services, nil</span>
-}
-</pre>
-		
-		<pre class="file" id="file21" style="display: none">package services
-
-import (
-        "encoding/json"
-        "fmt"
-        "net/http"
-        "strconv"
-
-        "nanny-backend/internal/common/models"
-
-        "github.com/gorilla/mux"
-)
-
-type Service interface {
-        CreateService(sitterID int, serviceType string, pricePerHour float64, description string) (int, error)
-        GetService(serviceID int) (*models.Service, error)
-        GetSitterServices(sitterID int) ([]models.Service, error)
-        UpdateService(serviceID int, serviceType string, pricePerHour float64, description string) error
-        DeleteService(serviceID int) error
-        SearchServices(serviceType, location string) ([]ServiceWithSitter, error)
-}
-
-type service struct {
-        repo Repository
-}
-
-func NewService(repo Repository) Service <span class="cov0" title="0">{
-        return &amp;service{repo: repo}
+func (p *WorkerPool) Submit(job Job) <span class="cov0" title="0">{
+        p.jobs &lt;- job
 }</span>
 
-func (s *service) CreateService(sitterID int, serviceType string, pricePerHour float64, description string) (int, error) <span class="cov0" title="0">{
-        validTypes := map[string]bool{"walking": true, "boarding": true, "home-care": true}
-        if !validTypes[serviceType] </span><span class="cov0" title="0">{
-                return 0, fmt.Errorf("неверный тип услуги. Допустимые значения: walking, boarding, home-care")
-        }</span>
-
-        <span class="cov0" title="0">if pricePerHour &lt;= 0 </span><span class="cov0" title="0">{
-                return 0, fmt.Errorf("цена должна быть больше 0")
-        }</span>
-
-        <span class="cov0" title="0">srv := &amp;models.Service{
-                SitterID:     sitterID,
-                Type:         serviceType,
-                PricePerHour: pricePerHour,
-                Description:  description,
-        }
-
-        serviceID, err := s.repo.Create(srv)
-        if err != nil </span><span class="cov0" title="0">{
-                return 0, fmt.Errorf("ошибка создания услуги: %w", err)
-        }</span>
-
-        <span class="cov0" title="0">return serviceID, nil</span>
-}
-
-func (s *service) GetService(serviceID int) (*models.Service, error) <span class="cov0" title="0">{
-        return s.repo.GetByID(serviceID)
-}</span>
-
-func (s *service) GetSitterServices(sitterID int) ([]models.Service, error) <span class="cov0" title="0">{
-        return s.repo.GetBySitterID(sitterID)
-}</span>
-
-func (s *service) UpdateService(serviceID int, serviceType string, pricePerHour float64, description string) error <span class="cov0" title="0">{
-        validTypes := map[string]bool{"walking": true, "boarding": true, "home-care": true}
-        if !validTypes[serviceType] </span><span class="cov0" title="0">{
-                return fmt.Errorf("неверный тип услуги. Допустимые значения: walking, boarding, home-care")
-        }</span>
-
-        <span class="cov0" title="0">if pricePerHour &lt;= 0 </span><span class="cov0" title="0">{
-                return fmt.Errorf("цена должна быть больше 0")
-        }</span>
-
-        <span class="cov0" title="0">srv := &amp;models.Service{
-                ServiceID:    serviceID,
-                Type:         serviceType,
-                PricePerHour: pricePerHour,
-                Description:  description,
-        }
-
-        return s.repo.Update(srv)</span>
-}
-
-func (s *service) DeleteService(serviceID int) error <span class="cov0" title="0">{
-        return s.repo.Delete(serviceID)
-}</span>
-
-func (s *service) SearchServices(serviceType, location string) ([]ServiceWithSitter, error) <span class="cov0" title="0">{
-        return s.repo.SearchServices(serviceType, location)
-}</span>
-
-type Handler struct {
-        service Service
-}
-
-func NewHandler(service Service) *Handler <span class="cov0" title="0">{
-        return &amp;Handler{service: service}
-}</span>
-
-type CreateServiceRequest struct {
-        SitterID     int     `json:"sitter_id"`
-        Type         string  `json:"type"`
-        PricePerHour float64 `json:"price_per_hour"`
-        Description  string  `json:"description,omitempty"`
-}
-
-type UpdateServiceRequest struct {
-        Type         string  `json:"type"`
-        PricePerHour float64 `json:"price_per_hour"`
-        Description  string  `json:"description,omitempty"`
-}
-
-func (h *Handler) CreateService(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
-        var req CreateServiceRequest
-        if err := json.NewDecoder(r.Body).Decode(&amp;req); err != nil </span><span class="cov0" title="0">{
-                respondWithError(w, http.StatusBadRequest, "неверные данные")
-                return
-        }</span>
-
-        <span class="cov0" title="0">serviceID, err := h.service.CreateService(req.SitterID, req.Type, req.PricePerHour, req.Description)
-        if err != nil </span><span class="cov0" title="0">{
-                respondWithError(w, http.StatusBadRequest, err.Error())
-                return
-        }</span>
-
-        <span class="cov0" title="0">respondWithJSON(w, http.StatusCreated, map[string]interface{}{
-                "message":    "услуга создана успешно",
-                "service_id": serviceID,
-        })</span>
-}
-
-func (h *Handler) GetService(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
-        vars := mux.Vars(r)
-        serviceID, err := strconv.Atoi(vars["id"])
-        if err != nil </span><span class="cov0" title="0">{
-                respondWithError(w, http.StatusBadRequest, "неверный ID услуги")
-                return
-        }</span>
-
-        <span class="cov0" title="0">service, err := h.service.GetService(serviceID)
-        if err != nil </span><span class="cov0" title="0">{
-                respondWithError(w, http.StatusNotFound, err.Error())
-                return
-        }</span>
-
-        <span class="cov0" title="0">respondWithJSON(w, http.StatusOK, service)</span>
-}
-
-func (h *Handler) GetSitterServices(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
-        vars := mux.Vars(r)
-        sitterID, err := strconv.Atoi(vars["sitter_id"])
-        if err != nil </span><span class="cov0" title="0">{
-                respondWithError(w, http.StatusBadRequest, "неверный ID няни")
-                return
-        }</span>
-
-        <span class="cov0" title="0">services, err := h.service.GetSitterServices(sitterID)
-        if err != nil </span><span class="cov0" title="0">{
-                respondWithError(w, http.StatusInternalServerError, err.Error())
-                return
-        }</span>
-
-        <span class="cov0" title="0">respondWithJSON(w, http.StatusOK, services)</span>
-}
-
-func (h *Handler) UpdateService(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
-        vars := mux.Vars(r)
-        serviceID, err := strconv.Atoi(vars["id"])
-        if err != nil </span><span class="cov0" title="0">{
-                respondWithError(w, http.StatusBadRequest, "неверный ID услуги")
-                return
-        }</span>
-
-        <span class="cov0" title="0">var req UpdateServiceRequest
-        if err := json.NewDecoder(r.Body).Decode(&amp;req); err != nil </span><span class="cov0" title="0">{
-                respondWithError(w, http.StatusBadRequest, "неверные данные")
-                return
-        }</span>
-
-        <span class="cov0" title="0">err = h.service.UpdateService(serviceID, req.Type, req.PricePerHour, req.Description)
-        if err != nil </span><span class="cov0" title="0">{
-                respondWithError(w, http.StatusBadRequest, err.Error())
-                return
-        }</span>
-
-        <span class="cov0" title="0">respondWithJSON(w, http.StatusOK, map[string]string{
-                "message": "услуга обновлена успешно",
-        })</span>
-}
-
-func (h *Handler) DeleteService(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
-        vars := mux.Vars(r)
-        serviceID, err := strconv.Atoi(vars["id"])
-        if err != nil </span><span class="cov0" title="0">{
-                respondWithError(w, http.StatusBadRequest, "неверный ID услуги")
-                return
-        }</span>
-
-        <span class="cov0" title="0">err = h.service.DeleteService(serviceID)
-        if err != nil </span><span class="cov0" title="0">{
-                respondWithError(w, http.StatusInternalServerError, err.Error())
-                return
-        }</span>
-
-        <span class="cov0" title="0">respondWithJSON(w, http.StatusOK, map[string]string{
-                "message": "услуга удалена успешно",
-        })</span>
-}
-
-func (h *Handler) SearchServices(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
-        serviceType := r.URL.Query().Get("type")
-        location := r.URL.Query().Get("location")
-
-        services, err := h.service.SearchServices(serviceType, location)
-        if err != nil </span><span class="cov0" title="0">{
-                respondWithError(w, http.StatusInternalServerError, err.Error())
-                return
-        }</span>
-
-        <span class="cov0" title="0">respondWithJSON(w, http.StatusOK, services)</span>
-}
-
-func respondWithError(w http.ResponseWriter, code int, message string) <span class="cov0" title="0">{
-        respondWithJSON(w, code, map[string]string{"error": message})
-}</span>
-
-func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) <span class="cov0" title="0">{
-        w.Header().Set("Content-Type", "application/json")
-        w.WriteHeader(code)
-        json.NewEncoder(w).Encode(payload)
+func (p *WorkerPool) Shutdown() <span class="cov0" title="0">{
+        close(p.jobs)
 }</span>
 </pre>
 		
-		<pre class="file" id="file22" style="display: none">package config
+		<pre class="file" id="file21" style="display: none">package config
 
 import (
         "fmt"
@@ -3050,10 +2471,12 @@ type ServerConfig struct {
 func Load() *Config <span class="cov0" title="0">{
         return &amp;Config{
                 Database: DatabaseConfig{
+                        // В Docker: postgres
+                        // Локально: localhost
                         Host:     getEnv("DB_HOST", "localhost"),
                         Port:     getEnv("DB_PORT", "5432"),
                         User:     getEnv("DB_USER", "postgres"),
-                        Password: getEnv("DB_PASSWORD", "Ana4aBada$$"),
+                        Password: getEnv("DB_PASSWORD", "postgres"),
                         DBName:   getEnv("DB_NAME", "nanny_db"),
                         SSLMode:  getEnv("DB_SSLMODE", "disable"),
                 },
@@ -3064,20 +2487,29 @@ func Load() *Config <span class="cov0" title="0">{
         }
 }</span>
 
+// ConnectionString формирует PostgreSQL DSN
 func (c *DatabaseConfig) ConnectionString() string <span class="cov0" title="0">{
-        return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
-                c.User, c.Password, c.Host, c.Port, c.DBName, c.SSLMode)
+        return fmt.Sprintf(
+                "postgres://%s:%s@%s:%s/%s?sslmode=%s",
+                c.User,
+                c.Password,
+                c.Host,
+                c.Port,
+                c.DBName,
+                c.SSLMode,
+        )
 }</span>
 
+// getEnv читает переменную окружения или возвращает default
 func getEnv(key, defaultValue string) string <span class="cov0" title="0">{
-        if value := os.Getenv(key); value != "" </span><span class="cov0" title="0">{
+        if value, exists := os.LookupEnv(key); exists &amp;&amp; value != "" </span><span class="cov0" title="0">{
                 return value
         }</span>
         <span class="cov0" title="0">return defaultValue</span>
 }
 </pre>
 		
-		<pre class="file" id="file23" style="display: none">package validator
+		<pre class="file" id="file22" style="display: none">package validator
 
 import (
         "errors"
@@ -3240,7 +2672,7 @@ func validateUserRole(fl validator.FieldLevel) bool <span class="cov0" title="0"
 }
 </pre>
 		
-		<pre class="file" id="file24" style="display: none">package main
+		<pre class="file" id="file23" style="display: none">package main
 
 import (
         "fmt"
