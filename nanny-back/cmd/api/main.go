@@ -100,7 +100,6 @@ func main() {
 	log.Println("✅ Background worker stopped, application exited cleanly")
 }
 
-
 func connectWithRetry(dsn string, attempts int, delay time.Duration) (*database.Database, error) {
 	var db *database.Database
 	var err error
@@ -118,7 +117,6 @@ func connectWithRetry(dsn string, attempts int, delay time.Duration) (*database.
 
 	return nil, err
 }
-
 
 func startBookingExpirationWorker(ctx context.Context, db *database.Database) {
 	ticker := time.NewTicker(1 * time.Hour)
@@ -157,7 +155,6 @@ func checkExpiredBookings(ctx context.Context, db *database.Database) {
 		log.Printf("✅ Worker cancelled %d expired booking(s)", affected)
 	}
 }
-
 
 func setupAuthModule(r *mux.Router, db *database.Database) {
 	repo := auth.NewRepository(db.DB)

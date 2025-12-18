@@ -42,12 +42,14 @@
         </form>
 
         <p class="switch-text">
-            Уже есть аккаунт? <a href="/login">ВОЙТИ</a>
+            Уже есть аккаунт? <a href="login.html">ВОЙТИ</a>
         </p>
     </div>
 </div>
 
 <script>
+    const BASE_URL = 'http://localhost:8080';
+
     document.querySelectorAll('input[name="role"]').forEach(radio => {
         radio.addEventListener('change', (e) => {
             const sitterFields = document.getElementById('sitterFields');
@@ -83,8 +85,8 @@
         }
 
         const endpoint = data.role === 'owner'
-            ? '/api/auth/register/owner'
-            : '/api/auth/register/sitter';
+            ? `${BASE_URL}/api/auth/register/owner`
+            : `${BASE_URL}/api/auth/register/sitter`;
 
         try {
             const response = await fetch(endpoint, {
@@ -97,7 +99,7 @@
 
             if (response.ok) {
                 alert('✅ ' + result.message);
-                window.location.href = '/login';
+                window.location.href = 'login.html';
             } else {
                 errorBox.style.display = 'block';
                 errorBox.innerText = result.error || 'Ошибка регистрации';
