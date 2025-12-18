@@ -40,3 +40,4 @@ docker-data
 # ========================
 .DS_Store
 Thumbs.db
+.idea/
