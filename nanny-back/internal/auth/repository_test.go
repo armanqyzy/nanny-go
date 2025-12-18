@@ -63,7 +63,7 @@ func TestCreateUser_Error(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Equal(t, 0, userID)
-	assert.Contains(t, err.Error(), "не удалось создать пользователя")
+	assert.Contains(t, err.Error(), "could not create a user")
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -124,7 +124,7 @@ func TestGetUserByEmail_NotFound(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, user)
-	assert.Contains(t, err.Error(), "пользователь не найден")
+	assert.Contains(t, err.Error(), "user not found")
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -143,7 +143,7 @@ func TestGetUserByEmail_DatabaseError(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, user)
-	assert.Contains(t, err.Error(), "ошибка получения пользователя")
+	assert.Contains(t, err.Error(), "error getting user")
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -250,7 +250,7 @@ func TestCreateSitter_Error(t *testing.T) {
 	err = repo.CreateSitter(sitter)
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "не удалось создать профиль няни")
+	assert.Contains(t, err.Error(), "could not create a nanny profile")
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -284,7 +284,7 @@ func TestCreateSitter_DuplicateID(t *testing.T) {
 	err = repo.CreateSitter(sitter)
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "не удалось создать профиль няни")
+	assert.Contains(t, err.Error(), "could not create nanny profile")
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 

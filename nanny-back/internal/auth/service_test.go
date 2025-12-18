@@ -68,7 +68,7 @@ func TestRegisterOwner_EmailExists(t *testing.T) {
 	)
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "ошибка регистрации")
+	assert.Contains(t, err.Error(), "error registration")
 	mockRepo.AssertExpectations(t)
 }
 
@@ -119,7 +119,7 @@ func TestRegisterSitter_CreateUserError(t *testing.T) {
 	)
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "ошибка создания пользователя")
+	assert.Contains(t, err.Error(), "error creating user")
 	mockRepo.AssertExpectations(t)
 }
 
@@ -147,7 +147,7 @@ func TestRegisterSitter_CreateSitterError(t *testing.T) {
 	)
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "ошибка создания профиля няни")
+	assert.Contains(t, err.Error(), "error creating nanny prodile")
 	mockRepo.AssertExpectations(t)
 }
 
@@ -195,7 +195,7 @@ func TestLogin_UserNotFound(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, user)
 	assert.Empty(t, token)
-	assert.Contains(t, err.Error(), "неверный email или пароль")
+	assert.Contains(t, err.Error(), "incorrect email or password")
 	mockRepo.AssertExpectations(t)
 }
 
@@ -224,7 +224,7 @@ func TestLogin_WrongPassword(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, resultUser)
 	assert.Empty(t, token)
-	assert.Contains(t, err.Error(), "неверный email или пароль")
+	assert.Contains(t, err.Error(), "incorrect email or password")
 	mockRepo.AssertExpectations(t)
 }
 

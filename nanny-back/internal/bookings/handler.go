@@ -24,14 +24,14 @@ type CreateBookingRequest struct {
 	SitterID  int    `json:"sitter_id" validate:"required,gt=0"`
 	PetID     int    `json:"pet_id" validate:"required,gt=0"`
 	ServiceID int    `json:"service_id" validate:"required,gt=0"`
-	StartTime string `json:"start_time" validate:"required"` // ISO 8601 format
-	EndTime   string `json:"end_time" validate:"required"`   // ISO 8601 format
+	StartTime string `json:"start_time" validate:"required"`
+	EndTime   string `json:"end_time" validate:"required"` 
 }
 
 func (h *Handler) CreateBooking(w http.ResponseWriter, r *http.Request) {
 	var req CreateBookingRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверные данные")
+		respondWithError(w, http.StatusBadRequest, "incorrect data")
 		return
 	}
 
@@ -42,34 +42,34 @@ func (h *Handler) CreateBooking(w http.ResponseWriter, r *http.Request) {
 
 	startTime, err := time.Parse(time.RFC3339, req.StartTime)
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверный формат времени начала (используйте ISO 8601)")
+		respondWithError(w, http.StatusBadRequest, "incorrect format start date (use ISO 8601)")
 		return
 	}
 
 	endTime, err := time.Parse(time.RFC3339, req.EndTime)
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверный формат времени окончания (используйте ISO 8601)")
+		respondWithError(w, http.StatusBadRequest, "incorrect format end date (use ISO 8601)")
 		return
 	}
 
 	if endTime.Before(startTime) {
-		respondWithError(w, http.StatusBadRequest, "время окончания должно быть позже времени начала")
+		respondWithError(w, http.StatusBadRequest, "end time must be later than start time")
 		return
 	}
 
 	if startTime.Before(time.Now()) {
-		respondWithError(w, http.StatusBadRequest, "время начала не может быть в прошлом")
+		respondWithError(w, http.StatusBadRequest, "start time cannot be past time")
 		return
 	}
 
 	duration := endTime.Sub(startTime)
 	if duration.Hours() > 24 {
-		respondWithError(w, http.StatusBadRequest, "максимальная длительность бронирования - 24 часа")
+		respondWithError(w, http.StatusBadRequest, "max duration booking  - 24 hours")
 		return
 	}
 
 	if duration.Minutes() < 30 {
-		respondWithError(w, http.StatusBadRequest, "минимальная длительность бронирования - 30 минут")
+		respondWithError(w, http.StatusBadRequest, "min duration booking - 30 min")
 		return
 	}
 
@@ -87,7 +87,7 @@ func (h *Handler) CreateBooking(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusCreated, map[string]interface{}{
-		"message":    "бронирование создано успешно",
+		"message":    "booking created successfully",
 		"booking_id": bookingID,
 	})
 }
@@ -96,12 +96,12 @@ func (h *Handler) GetBooking(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	bookingID, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверный ID бронирования")
+		respondWithError(w, http.StatusBadRequest, "incorrect ID booking")
 		return
 	}
 
 	if bookingID <= 0 {
-		respondWithError(w, http.StatusBadRequest, "ID бронирования должен быть положительным числом")
+		respondWithError(w, http.StatusBadRequest, "ID booking must be positive")
 		return
 	}
 
@@ -118,12 +118,12 @@ func (h *Handler) GetOwnerBookings(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	ownerID, err := strconv.Atoi(vars["owner_id"])
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверный ID владельца")
+		respondWithError(w, http.StatusBadRequest, "incorrect ID owner")
 		return
 	}
 
 	if ownerID <= 0 {
-		respondWithError(w, http.StatusBadRequest, "ID владельца должен быть положительным числом")
+		respondWithError(w, http.StatusBadRequest, "ID owner must be positive")
 		return
 	}
 
@@ -140,12 +140,12 @@ func (h *Handler) GetSitterBookings(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	sitterID, err := strconv.Atoi(vars["sitter_id"])
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверный ID няни")
+		respondWithError(w, http.StatusBadRequest, "incorrect ID nanny")
 		return
 	}
 
 	if sitterID <= 0 {
-		respondWithError(w, http.StatusBadRequest, "ID няни должен быть положительным числом")
+		respondWithError(w, http.StatusBadRequest, "ID nanny must be positive")
 		return
 	}
 
@@ -162,12 +162,12 @@ func (h *Handler) ConfirmBooking(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	bookingID, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверный ID бронирования")
+		respondWithError(w, http.StatusBadRequest, "incorrect ID booking")
 		return
 	}
 
 	if bookingID <= 0 {
-		respondWithError(w, http.StatusBadRequest, "ID бронирования должен быть положительным числом")
+		respondWithError(w, http.StatusBadRequest, "ID booking must be positive")
 		return
 	}
 
@@ -178,7 +178,7 @@ func (h *Handler) ConfirmBooking(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusOK, map[string]string{
-		"message": "бронирование подтверждено",
+		"message": "booking confirmed",
 	})
 }
 
@@ -186,12 +186,12 @@ func (h *Handler) CancelBooking(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	bookingID, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверный ID бронирования")
+		respondWithError(w, http.StatusBadRequest, "incorrect ID booking")
 		return
 	}
 
 	if bookingID <= 0 {
-		respondWithError(w, http.StatusBadRequest, "ID бронирования должен быть положительным числом")
+		respondWithError(w, http.StatusBadRequest, "ID booking must be positive")
 		return
 	}
 
@@ -202,7 +202,7 @@ func (h *Handler) CancelBooking(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusOK, map[string]string{
-		"message": "бронирование отменено",
+		"message": "booking declined",
 	})
 }
 
@@ -210,12 +210,12 @@ func (h *Handler) CompleteBooking(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	bookingID, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверный ID бронирования")
+		respondWithError(w, http.StatusBadRequest, "incorrect ID booking")
 		return
 	}
 
 	if bookingID <= 0 {
-		respondWithError(w, http.StatusBadRequest, "ID бронирования должен быть положительным числом")
+		respondWithError(w, http.StatusBadRequest, "ID booking must be positive")
 		return
 	}
 
@@ -226,7 +226,7 @@ func (h *Handler) CompleteBooking(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusOK, map[string]string{
-		"message": "бронирование завершено",
+		"message": "booking completed",
 	})
 }
 

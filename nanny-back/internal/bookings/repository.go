@@ -35,7 +35,7 @@ func (r *repository) Create(booking *models.Booking) (int, error) {
 		booking.StartTime, booking.EndTime, booking.Status).Scan(&bookingID)
 
 	if err != nil {
-		return 0, fmt.Errorf("не удалось создать бронирование: %w", err)
+		return 0, fmt.Errorf("could not create booking: %w", err)
 	}
 
 	return bookingID, nil

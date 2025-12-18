@@ -27,18 +27,12 @@ import (
 func main() {
 	cfg := config.Load()
 
-	// ========================
-	// Database (with retry)
-	// ========================
 	db, err := connectWithRetry(cfg.Database.ConnectionString(), 10, 3*time.Second)
 	if err != nil {
 		log.Fatal("❌ Failed to connect to database:", err)
 	}
 	defer db.Close()
 
-	// ========================
-	// Router
-	// ========================
 	r := mux.NewRouter()
 
 	setupAuthModule(r, db)
@@ -47,6 +41,9 @@ func main() {
 	setupReviewsModule(r, db)
 	setupServicesModule(r, db)
 	setupAdminModule(r, db)
+
+	frontendDir := "../nanny-front"
+	r.PathPrefix("/").Handler(http.FileServer(http.Dir(frontendDir)))
 
 	handler := middleware.CORS(
 		middleware.RequestLogger(
@@ -65,9 +62,6 @@ func main() {
 		IdleTimeout:       60 * time.Second,
 	}
 
-	// ========================
-	// Background worker
-	// ========================
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -78,9 +72,6 @@ func main() {
 		startBookingExpirationWorker(ctx, db)
 	}()
 
-	// ========================
-	// HTTP server
-	// ========================
 	go func() {
 		log.Printf("✅ API server started on %s\n", addr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -88,9 +79,6 @@ func main() {
 		}
 	}()
 
-	// ========================
-	// Graceful shutdown
-	// ========================
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
@@ -112,9 +100,6 @@ func main() {
 	log.Println("✅ Background worker stopped, application exited cleanly")
 }
 
-// ========================
-// Helpers
-// ========================
 
 func connectWithRetry(dsn string, attempts int, delay time.Duration) (*database.Database, error) {
 	var db *database.Database
@@ -134,9 +119,6 @@ func connectWithRetry(dsn string, attempts int, delay time.Duration) (*database.
 	return nil, err
 }
 
-// ========================
-// Background worker
-// ========================
 
 func startBookingExpirationWorker(ctx context.Context, db *database.Database) {
 	ticker := time.NewTicker(1 * time.Hour)
@@ -176,9 +158,6 @@ func checkExpiredBookings(ctx context.Context, db *database.Database) {
 	}
 }
 
-// ========================
-// Modules
-// ========================
 
 func setupAuthModule(r *mux.Router, db *database.Database) {
 	repo := auth.NewRepository(db.DB)

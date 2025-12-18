@@ -16,7 +16,6 @@ type JWTClaims struct {
 	jwt.RegisteredClaims
 }
 
-// GenerateJWT генерирует JWT-токен для пользователя
 func GenerateJWT(user *models.User) (string, error) {
 	cfg := config.Load()
 	secret := []byte(cfg.JWTSecret)

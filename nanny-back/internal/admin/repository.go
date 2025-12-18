@@ -60,7 +60,7 @@ func (r *repository) GetPendingSitters() ([]models.Sitter, error) {
 			&sitter.Status,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("ошибка сканирования няни: %w", err)
+			return nil, fmt.Errorf("error scanning nanny: %w", err)
 		}
 		sitters = append(sitters, sitter)
 	}
@@ -76,7 +76,7 @@ func (r *repository) ApproveSitter(sitterID int) error {
 	`, sitterID)
 
 	if err != nil {
-		return fmt.Errorf("не удалось одобрить няню: %w", err)
+		return fmt.Errorf("could not approve a nanny: %w", err)
 	}
 
 	return nil
@@ -90,7 +90,7 @@ func (r *repository) RejectSitter(sitterID int) error {
 	`, sitterID)
 
 	if err != nil {
-		return fmt.Errorf("не удалось отклонить няню: %w", err)
+		return fmt.Errorf("could not decline a nanny: %w", err)
 	}
 
 	return nil
@@ -104,7 +104,7 @@ func (r *repository) GetAllUsers() ([]models.User, error) {
 	`)
 
 	if err != nil {
-		return nil, fmt.Errorf("ошибка получения пользователей: %w", err)
+		return nil, fmt.Errorf("error getting users: %w", err)
 	}
 	defer rows.Close()
 
@@ -120,7 +120,7 @@ func (r *repository) GetAllUsers() ([]models.User, error) {
 			&user.CreatedAt,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("ошибка сканирования пользователя: %w", err)
+			return nil, fmt.Errorf("error scanning users: %w", err)
 		}
 		users = append(users, user)
 	}
@@ -144,10 +144,10 @@ func (r *repository) GetUserByID(userID int) (*models.User, error) {
 	)
 
 	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("пользователь не найден")
+		return nil, fmt.Errorf("user not found")
 	}
 	if err != nil {
-		return nil, fmt.Errorf("ошибка получения пользователя: %w", err)
+		return nil, fmt.Errorf("error getting users: %w", err)
 	}
 
 	return user, nil
@@ -156,7 +156,7 @@ func (r *repository) GetUserByID(userID int) (*models.User, error) {
 func (r *repository) DeleteUser(userID int) error {
 	_, err := r.db.Exec(`DELETE FROM users WHERE user_id = $1`, userID)
 	if err != nil {
-		return fmt.Errorf("не удалось удалить пользователя: %w", err)
+		return fmt.Errorf("coould not try to delete user: %w", err)
 	}
 	return nil
 }
@@ -190,10 +190,10 @@ func (r *repository) GetSitterDetails(sitterID int) (*SitterDetails, error) {
 	)
 
 	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("няня не найдена")
+		return nil, fmt.Errorf("nanny not found")
 	}
 	if err != nil {
-		return nil, fmt.Errorf("ошибка получения деталей няни: %w", err)
+		return nil, fmt.Errorf("error getting details of a nanny: %w", err)
 	}
 
 	return details, nil
@@ -207,7 +207,7 @@ func (r *repository) UpdateSitterStatus(sitterID int, status string) error {
 	`, status, sitterID)
 
 	if err != nil {
-		return fmt.Errorf("не удалось обновить статус няни: %w", err)
+		return fmt.Errorf("could not refresh the status of a nanny: %w", err)
 	}
 
 	return nil
