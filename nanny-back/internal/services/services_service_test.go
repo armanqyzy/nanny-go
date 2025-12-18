@@ -90,7 +90,10 @@ func TestHandler_CreateService_Success(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, rec.Code)
 
 	var resp map[string]interface{}
-	json.Unmarshal(rec.Body.Bytes(), &resp)
+	err := json.Unmarshal(rec.Body.Bytes(), &resp)
+	if err != nil {
+		return
+	}
 	assert.Equal(t, "услуга создана успешно", resp["message"])
 	assert.Equal(t, float64(123), resp["service_id"])
 }

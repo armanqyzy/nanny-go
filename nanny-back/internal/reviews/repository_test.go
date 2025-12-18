@@ -5,15 +5,21 @@ import (
 	"testing"
 	"time"
 
+	"nanny-backend/internal/common/models"
+
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
-	"nanny-backend/internal/common/models"
 )
 
 func TestCreate_Success(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+
+		}
+	}(db)
 
 	repo := &repository{db: db}
 
@@ -45,7 +51,12 @@ func TestCreate_Success(t *testing.T) {
 func TestGetByID_Success(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+
+		}
+	}(db)
 
 	repo := &repository{db: db}
 
@@ -84,7 +95,12 @@ func TestGetByID_Success(t *testing.T) {
 func TestGetByID_NotFound(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+
+		}
+	}(db)
 
 	repo := &repository{db: db}
 
@@ -102,7 +118,12 @@ func TestGetByID_NotFound(t *testing.T) {
 func TestGetBySitterID_Success(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+
+		}
+	}(db)
 
 	repo := &repository{db: db}
 
@@ -134,7 +155,12 @@ func TestGetBySitterID_Success(t *testing.T) {
 func TestGetByBookingID_Success(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+
+		}
+	}(db)
 
 	repo := &repository{db: db}
 
@@ -173,7 +199,12 @@ func TestGetByBookingID_Success(t *testing.T) {
 func TestUpdate_Success(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+
+		}
+	}(db)
 
 	repo := &repository{db: db}
 
@@ -200,7 +231,12 @@ func TestUpdate_Success(t *testing.T) {
 func TestDelete_Success(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+
+		}
+	}(db)
 
 	repo := &repository{db: db}
 
@@ -217,7 +253,12 @@ func TestDelete_Success(t *testing.T) {
 func TestRepository_GetSitterRating_Success(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+
+		}
+	}(db)
 
 	repo := &repository{db: db}
 
@@ -241,7 +282,12 @@ func TestRepository_GetSitterRating_Success(t *testing.T) {
 func TestGetSitterRating_NoReviews(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+
+		}
+	}(db)
 
 	repo := &repository{db: db}
 

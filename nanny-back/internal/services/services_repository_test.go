@@ -15,7 +15,12 @@ func TestCreateServiceRepository(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create mock: %v", err)
 	}
-	defer db.Close()
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+
+		}
+	}(db)
 
 	repo := NewRepository(db)
 
@@ -48,7 +53,12 @@ func TestGetByIDRepository(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create mock: %v", err)
 	}
-	defer db.Close()
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+
+		}
+	}(db)
 
 	repo := NewRepository(db)
 
@@ -77,7 +87,12 @@ func TestGetByIDNotFound(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create mock: %v", err)
 	}
-	defer db.Close()
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+
+		}
+	}(db)
 
 	repo := NewRepository(db)
 
@@ -100,7 +115,12 @@ func TestGetBySitterIDRepository(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create mock: %v", err)
 	}
-	defer db.Close()
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+
+		}
+	}(db)
 
 	repo := NewRepository(db)
 
@@ -130,7 +150,12 @@ func TestUpdateRepository(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create mock: %v", err)
 	}
-	defer db.Close()
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+
+		}
+	}(db)
 
 	repo := NewRepository(db)
 
@@ -161,7 +186,12 @@ func TestDeleteRepository(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create mock: %v", err)
 	}
-	defer db.Close()
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+
+		}
+	}(db)
 
 	repo := NewRepository(db)
 
@@ -184,7 +214,12 @@ func TestSearchServicesRepository(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create mock: %v", err)
 	}
-	defer db.Close()
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+
+		}
+	}(db)
 
 	repo := NewRepository(db)
 
@@ -214,7 +249,12 @@ func TestSearchWithFilters(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create mock: %v", err)
 	}
-	defer db.Close()
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+
+		}
+	}(db)
 
 	repo := NewRepository(db)
 
@@ -245,7 +285,12 @@ func TestRepositoryErrors(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create mock: %v", err)
 	}
-	defer db.Close()
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+
+		}
+	}(db)
 
 	repo := NewRepository(db)
 
