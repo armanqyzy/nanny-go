@@ -3,6 +3,7 @@ package auth
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -95,6 +96,68 @@ func TestHandler_RegisterOwner_InvalidBody(t *testing.T) {
 	handler.RegisterOwner(rec, req)
 
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
+
+	var resp map[string]string
+	json.Unmarshal(rec.Body.Bytes(), &resp)
+	assert.Contains(t, resp["error"], "неверные данные")
+}
+
+func TestHandler_RegisterOwner_ValidationError(t *testing.T) {
+	mockService := new(MockService)
+	handler := NewHandler(mockService)
+
+	reqBody := RegisterOwnerRequest{
+		FullName: "A",
+		Email:    "invalid-email",
+		Phone:    "123",
+		Password: "short",
+	}
+
+	body, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest(http.MethodPost, "/auth/register/owner", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.RegisterOwner(rec, req)
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+}
+
+func TestHandler_RegisterOwner_ServiceError(t *testing.T) {
+	mockService := new(MockService)
+	handler := NewHandler(mockService)
+
+	reqBody := RegisterOwnerRequest{
+		FullName: "Test User",
+		Email:    "test@test.com",
+		Phone:    "+77001234567",
+		Password: "password123",
+	}
+
+	body, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest(http.MethodPost, "/auth/register/owner", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	mockService.
+		On(
+			"RegisterOwner",
+			reqBody.FullName,
+			reqBody.Email,
+			reqBody.Phone,
+			reqBody.Password,
+		).
+		Return(errors.New("email already exists"))
+
+	handler.RegisterOwner(rec, req)
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+
+	var resp map[string]string
+	json.Unmarshal(rec.Body.Bytes(), &resp)
+	assert.Contains(t, resp["error"], "email already exists")
+
+	mockService.AssertExpectations(t)
 }
 
 func TestHandler_RegisterSitter_Success(t *testing.T) {
@@ -138,6 +201,90 @@ func TestHandler_RegisterSitter_Success(t *testing.T) {
 	var resp map[string]string
 	json.Unmarshal(rec.Body.Bytes(), &resp)
 	assert.Equal(t, "няня зарегистрирована, ожидает подтверждения", resp["message"])
+
+	mockService.AssertExpectations(t)
+}
+
+func TestHandler_RegisterSitter_InvalidBody(t *testing.T) {
+	mockService := new(MockService)
+	handler := NewHandler(mockService)
+
+	req := httptest.NewRequest(http.MethodPost, "/auth/register/sitter", bytes.NewBuffer([]byte("invalid json")))
+	rec := httptest.NewRecorder()
+
+	handler.RegisterSitter(rec, req)
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+
+	var resp map[string]string
+	json.Unmarshal(rec.Body.Bytes(), &resp)
+	assert.Contains(t, resp["error"], "неверные данные")
+}
+
+func TestHandler_RegisterSitter_ValidationError(t *testing.T) {
+	mockService := new(MockService)
+	handler := NewHandler(mockService)
+
+	reqBody := RegisterSitterRequest{
+		FullName:        "T",
+		Email:           "invalid",
+		Phone:           "123",
+		Password:        "short",
+		ExperienceYears: -1,
+		Location:        "",
+	}
+
+	body, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest(http.MethodPost, "/auth/register/sitter", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.RegisterSitter(rec, req)
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+}
+
+func TestHandler_RegisterSitter_ServiceError(t *testing.T) {
+	mockService := new(MockService)
+	handler := NewHandler(mockService)
+
+	reqBody := RegisterSitterRequest{
+		FullName:        "Test Sitter",
+		Email:           "sitter@test.com",
+		Phone:           "+77001234568",
+		Password:        "strongpassword",
+		ExperienceYears: 3,
+		Certificates:    "CPR",
+		Preferences:     "Dogs",
+		Location:        "Almaty",
+	}
+
+	body, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest(http.MethodPost, "/auth/register/sitter", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	mockService.
+		On(
+			"RegisterSitter",
+			reqBody.FullName,
+			reqBody.Email,
+			reqBody.Phone,
+			reqBody.Password,
+			reqBody.ExperienceYears,
+			reqBody.Certificates,
+			reqBody.Preferences,
+			reqBody.Location,
+		).
+		Return(errors.New("email already exists"))
+
+	handler.RegisterSitter(rec, req)
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+
+	var resp map[string]string
+	json.Unmarshal(rec.Body.Bytes(), &resp)
+	assert.Contains(t, resp["error"], "email already exists")
 
 	mockService.AssertExpectations(t)
 }
@@ -198,9 +345,50 @@ func TestHandler_Login_InvalidCredentials(t *testing.T) {
 
 	mockService.
 		On("Login", reqBody.Email, reqBody.Password).
-		Return(nil, "", assert.AnError)
+		Return(nil, "", errors.New("неверный email или пароль"))
 
 	handler.Login(rec, req)
 
 	assert.Equal(t, http.StatusUnauthorized, rec.Code)
+
+	var resp map[string]string
+	json.Unmarshal(rec.Body.Bytes(), &resp)
+	assert.Contains(t, resp["error"], "неверный email или пароль")
+
+	mockService.AssertExpectations(t)
+}
+
+func TestHandler_Login_InvalidBody(t *testing.T) {
+	mockService := new(MockService)
+	handler := NewHandler(mockService)
+
+	req := httptest.NewRequest(http.MethodPost, "/auth/login", bytes.NewBuffer([]byte("invalid json")))
+	rec := httptest.NewRecorder()
+
+	handler.Login(rec, req)
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+
+	var resp map[string]string
+	json.Unmarshal(rec.Body.Bytes(), &resp)
+	assert.Contains(t, resp["error"], "неверные данные")
+}
+
+func TestHandler_Login_ValidationError(t *testing.T) {
+	mockService := new(MockService)
+	handler := NewHandler(mockService)
+
+	reqBody := LoginRequest{
+		Email:    "invalid-email",
+		Password: "",
+	}
+
+	body, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest(http.MethodPost, "/auth/login", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.Login(rec, req)
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
 }

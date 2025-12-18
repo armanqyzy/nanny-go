@@ -69,6 +69,86 @@ func TestRegisterOwner_EmailExists(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "ошибка регистрации")
+	mockRepo.AssertExpectations(t)
+}
+
+func TestRegisterSitter_Success(t *testing.T) {
+	mockRepo := new(MockRepository)
+	service := NewService(mockRepo)
+
+	mockRepo.
+		On("CreateUser", mock.Anything).
+		Return(1, nil)
+
+	mockRepo.
+		On("CreateSitter", mock.Anything).
+		Return(nil)
+
+	err := service.RegisterSitter(
+		"Test Sitter",
+		"sitter@mail.com",
+		"+77001234567",
+		"password123",
+		5,
+		"CPR Certified",
+		"Dogs, Cats",
+		"Almaty",
+	)
+
+	assert.NoError(t, err)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestRegisterSitter_CreateUserError(t *testing.T) {
+	mockRepo := new(MockRepository)
+	service := NewService(mockRepo)
+
+	mockRepo.
+		On("CreateUser", mock.Anything).
+		Return(0, errors.New("database error"))
+
+	err := service.RegisterSitter(
+		"Test Sitter",
+		"sitter@mail.com",
+		"+77001234567",
+		"password123",
+		5,
+		"CPR",
+		"Dogs",
+		"Almaty",
+	)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "ошибка создания пользователя")
+	mockRepo.AssertExpectations(t)
+}
+
+func TestRegisterSitter_CreateSitterError(t *testing.T) {
+	mockRepo := new(MockRepository)
+	service := NewService(mockRepo)
+
+	mockRepo.
+		On("CreateUser", mock.Anything).
+		Return(1, nil)
+
+	mockRepo.
+		On("CreateSitter", mock.Anything).
+		Return(errors.New("database error"))
+
+	err := service.RegisterSitter(
+		"Test Sitter",
+		"sitter@mail.com",
+		"+77001234567",
+		"password123",
+		5,
+		"CPR",
+		"Dogs",
+		"Almaty",
+	)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "ошибка создания профиля няни")
+	mockRepo.AssertExpectations(t)
 }
 
 func TestLogin_Success(t *testing.T) {
@@ -85,6 +165,7 @@ func TestLogin_Success(t *testing.T) {
 		Email:        "test@mail.com",
 		PasswordHash: string(hashedPassword),
 		Role:         "owner",
+		FullName:     "Test User",
 	}
 
 	mockRepo.
@@ -97,19 +178,83 @@ func TestLogin_Success(t *testing.T) {
 	assert.NotNil(t, resultUser)
 	assert.NotEmpty(t, token)
 	assert.Equal(t, "owner", resultUser.Role)
+	assert.Equal(t, 1, resultUser.UserID)
+	mockRepo.AssertExpectations(t)
 }
 
-func TestLogin_InvalidCredentials(t *testing.T) {
+func TestLogin_UserNotFound(t *testing.T) {
 	mockRepo := new(MockRepository)
 	service := NewService(mockRepo)
 
 	mockRepo.
 		On("GetUserByEmail", "wrong@mail.com").
-		Return(nil, errors.New("not found"))
+		Return(nil, errors.New("user not found"))
 
 	user, token, err := service.Login("wrong@mail.com", "password")
 
 	assert.Error(t, err)
 	assert.Nil(t, user)
 	assert.Empty(t, token)
+	assert.Contains(t, err.Error(), "неверный email или пароль")
+	mockRepo.AssertExpectations(t)
+}
+
+func TestLogin_WrongPassword(t *testing.T) {
+	mockRepo := new(MockRepository)
+	service := NewService(mockRepo)
+
+	hashedPassword, _ := bcrypt.GenerateFromPassword(
+		[]byte("correctpassword"),
+		bcrypt.DefaultCost,
+	)
+
+	user := &models.User{
+		UserID:       1,
+		Email:        "test@mail.com",
+		PasswordHash: string(hashedPassword),
+		Role:         "owner",
+	}
+
+	mockRepo.
+		On("GetUserByEmail", "test@mail.com").
+		Return(user, nil)
+
+	resultUser, token, err := service.Login("test@mail.com", "wrongpassword")
+
+	assert.Error(t, err)
+	assert.Nil(t, resultUser)
+	assert.Empty(t, token)
+	assert.Contains(t, err.Error(), "неверный email или пароль")
+	mockRepo.AssertExpectations(t)
+}
+
+func TestLogin_SitterRole(t *testing.T) {
+	mockRepo := new(MockRepository)
+	service := NewService(mockRepo)
+
+	hashedPassword, _ := bcrypt.GenerateFromPassword(
+		[]byte("password123"),
+		bcrypt.DefaultCost,
+	)
+
+	user := &models.User{
+		UserID:       2,
+		Email:        "sitter@mail.com",
+		PasswordHash: string(hashedPassword),
+		Role:         "sitter",
+		FullName:     "Test Sitter",
+	}
+
+	mockRepo.
+		On("GetUserByEmail", "sitter@mail.com").
+		Return(user, nil)
+
+	resultUser, token, err := service.Login("sitter@mail.com", "password123")
+
+	assert.NoError(t, err)
+	assert.NotNil(t, resultUser)
+	assert.NotEmpty(t, token)
+	assert.Equal(t, "sitter", resultUser.Role)
+	assert.Equal(t, 2, resultUser.UserID)
+	mockRepo.AssertExpectations(t)
 }
