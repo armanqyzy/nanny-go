@@ -30,7 +30,7 @@ func (h *Handler) ApproveSitter(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	sitterID, err := strconv.Atoi(vars["sitter_id"])
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверный ID няни")
+		respondWithError(w, http.StatusBadRequest, "incorrect ID of a nanny")
 		return
 	}
 
@@ -41,7 +41,7 @@ func (h *Handler) ApproveSitter(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusOK, map[string]string{
-		"message": "няня одобрена успешно",
+		"message": "nanny approved successfully",
 	})
 }
 
@@ -49,7 +49,7 @@ func (h *Handler) RejectSitter(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	sitterID, err := strconv.Atoi(vars["sitter_id"])
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверный ID няни")
+		respondWithError(w, http.StatusBadRequest, "incorrect ID of a nanny")
 		return
 	}
 
@@ -60,7 +60,7 @@ func (h *Handler) RejectSitter(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusOK, map[string]string{
-		"message": "няня отклонена",
+		"message": "nanny rejected",
 	})
 }
 
@@ -78,7 +78,7 @@ func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID, err := strconv.Atoi(vars["user_id"])
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверный ID пользователя")
+		respondWithError(w, http.StatusBadRequest, "incorrect ID of a user")
 		return
 	}
 
@@ -95,7 +95,7 @@ func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID, err := strconv.Atoi(vars["user_id"])
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверный ID пользователя")
+		respondWithError(w, http.StatusBadRequest, "incorrect ID of a user")
 		return
 	}
 
@@ -106,7 +106,7 @@ func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusOK, map[string]string{
-		"message": "пользователь удалён успешно",
+		"message": "user found succesfully",
 	})
 }
 
@@ -114,7 +114,7 @@ func (h *Handler) GetSitterDetails(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	sitterID, err := strconv.Atoi(vars["sitter_id"])
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверный ID няни")
+		respondWithError(w, http.StatusBadRequest, "incorrect ID of a user")
 		return
 	}
 

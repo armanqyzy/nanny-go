@@ -10,8 +10,13 @@
 <div class="dashboard">
     <aside class="sidebar">
         <div class="sidebar-logo">
-            <h1>🐾 Nanny</h1>
-            <p id="userEmail"></p>
+            <div class="brand">
+                <div class="brand-mark">🐾</div>
+                <div class="brand-text">
+                    <h1>Nanny</h1>
+                    <p id="userEmail"></p>
+                </div>
+            </div>
         </div>
         <ul class="sidebar-menu">
             <li><a href="#" data-tab="overview" class="active">📊 Обзор</a></li>
@@ -21,6 +26,11 @@
             <li><a href="#" data-tab="reviews">⭐ Мои отзывы</a></li>
         </ul>
         <button class="logout-btn" style="width: 100%; margin-top: 30px;" onclick="logout()">Выход</button>
+    
+        <div class="sidebar-footer">
+            <div class="sidebar-footer__brand">🐾 Nanny</div>
+            <div class="sidebar-footer__meta">Pet-startup UI • v1</div>
+        </div>
     </aside>
 
     <main class="main-content">
@@ -28,6 +38,7 @@
         <div id="overview-tab" class="tab-content">
             <div class="header">
                 <h1>Добро пожаловать!</h1>
+                <p class="header-subtitle">Управляйте сервисом быстро и удобно</p>
             </div>
 
             <div class="stats-grid">
@@ -127,9 +138,12 @@
             <div class="form-group">
                 <label>Тип:</label>
                 <select name="type" required>
-                    <option value="cat">Кошка</option>
-                    <option value="dog">Собака</option>
-                    <option value="rodent">Грызун</option>
+                    <option value="собака">Собака</option>
+                    <option value="кошка">Кошка</option>
+                    <option value="птица">Птица</option>
+                    <option value="грызун">Грызун</option>
+                    <option value="рептилия">Рептилия</option>
+                    <option value="другое">Другое</option>
                 </select>
             </div>
             <div class="form-group">

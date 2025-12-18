@@ -10,8 +10,13 @@
 <div class="dashboard">
     <aside class="sidebar">
         <div class="sidebar-logo">
-            <h1>🔐 Admin Panel</h1>
-            <p>Администратор</p>
+            <div class="brand">
+                <div class="brand-mark">🐾</div>
+                <div class="brand-text">
+                    <h1>Admin Panel</h1>
+                    <p>Администратор</p>
+                </div>
+            </div>
         </div>
         <ul class="sidebar-menu">
             <li><a href="#" data-tab="overview" class="active">📊 Обзор</a></li>
@@ -20,6 +25,11 @@
             <li><a href="#" data-tab="sitters">👨‍💼 Няни</a></li>
         </ul>
         <button class="logout-btn" style="width: 100%; margin-top: 30px;" onclick="logout()">Выход</button>
+    
+        <div class="sidebar-footer">
+            <div class="sidebar-footer__brand">🐾 Nanny</div>
+            <div class="sidebar-footer__meta">Pet-startup UI • v1</div>
+        </div>
     </aside>
 
     <main class="main-content">
@@ -27,6 +37,7 @@
         <div id="overview-tab" class="tab-content">
             <div class="header">
                 <h1>Панель администратора</h1>
+                <p class="header-subtitle">Управляйте сервисом быстро и удобно</p>
             </div>
 
             <div class="stats-grid">

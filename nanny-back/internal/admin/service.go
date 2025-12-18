@@ -35,7 +35,7 @@ func (s *service) ApproveSitter(sitterID int) error {
 	}
 
 	if details.Status != "pending" {
-		return fmt.Errorf("можно одобрить только заявки в статусе 'pending'")
+		return fmt.Errorf("you can approve only request in status 'pending'")
 	}
 
 	return s.repo.ApproveSitter(sitterID)
@@ -48,7 +48,7 @@ func (s *service) RejectSitter(sitterID int) error {
 	}
 
 	if details.Status != "pending" {
-		return fmt.Errorf("можно отклонить только заявки в статусе 'pending'")
+		return fmt.Errorf("you can reject only request in status 'pending'")
 	}
 
 	return s.repo.RejectSitter(sitterID)

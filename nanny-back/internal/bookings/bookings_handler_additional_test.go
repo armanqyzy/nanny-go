@@ -54,7 +54,7 @@ func TestHandler_GetOwnerBookings_InvalidID(t *testing.T) {
 
 	var resp map[string]string
 	json.Unmarshal(rec.Body.Bytes(), &resp)
-	assert.Contains(t, resp["error"], "неверный ID владельца")
+	assert.Contains(t, resp["error"], "incorrect ID owner")
 }
 
 func TestHandler_GetOwnerBookings_ZeroID(t *testing.T) {
@@ -71,7 +71,7 @@ func TestHandler_GetOwnerBookings_ZeroID(t *testing.T) {
 
 	var resp map[string]string
 	json.Unmarshal(rec.Body.Bytes(), &resp)
-	assert.Contains(t, resp["error"], "ID владельца должен быть положительным числом")
+	assert.Contains(t, resp["error"], "ID owner must be positive number")
 }
 
 func TestHandler_GetOwnerBookings_NegativeID(t *testing.T) {
@@ -146,7 +146,7 @@ func TestHandler_GetSitterBookings_InvalidID(t *testing.T) {
 
 	var resp map[string]string
 	json.Unmarshal(rec.Body.Bytes(), &resp)
-	assert.Contains(t, resp["error"], "неверный ID няни")
+	assert.Contains(t, resp["error"], "incorrect ID nanny")
 }
 
 func TestHandler_GetSitterBookings_ZeroID(t *testing.T) {
@@ -163,7 +163,7 @@ func TestHandler_GetSitterBookings_ZeroID(t *testing.T) {
 
 	var resp map[string]string
 	json.Unmarshal(rec.Body.Bytes(), &resp)
-	assert.Contains(t, resp["error"], "ID няни должен быть положительным числом")
+	assert.Contains(t, resp["error"], "ID nanny must be positive number")
 }
 
 func TestHandler_GetSitterBookings_NegativeID(t *testing.T) {

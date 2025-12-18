@@ -81,7 +81,7 @@ func TestHandler_RegisterOwner_Success(t *testing.T) {
 
 	var resp map[string]string
 	json.Unmarshal(rec.Body.Bytes(), &resp)
-	assert.Equal(t, "владелец зарегистрирован успешно", resp["message"])
+	assert.Equal(t, "owner successfully registered", resp["message"])
 
 	mockService.AssertExpectations(t)
 }
@@ -99,7 +99,7 @@ func TestHandler_RegisterOwner_InvalidBody(t *testing.T) {
 
 	var resp map[string]string
 	json.Unmarshal(rec.Body.Bytes(), &resp)
-	assert.Contains(t, resp["error"], "неверные данные")
+	assert.Contains(t, resp["error"], "not reliable data")
 }
 
 func TestHandler_RegisterOwner_ValidationError(t *testing.T) {
@@ -200,7 +200,7 @@ func TestHandler_RegisterSitter_Success(t *testing.T) {
 
 	var resp map[string]string
 	json.Unmarshal(rec.Body.Bytes(), &resp)
-	assert.Equal(t, "няня зарегистрирована, ожидает подтверждения", resp["message"])
+	assert.Equal(t, "nanny registered, expecting acceptance", resp["message"])
 
 	mockService.AssertExpectations(t)
 }
@@ -218,7 +218,7 @@ func TestHandler_RegisterSitter_InvalidBody(t *testing.T) {
 
 	var resp map[string]string
 	json.Unmarshal(rec.Body.Bytes(), &resp)
-	assert.Contains(t, resp["error"], "неверные данные")
+	assert.Contains(t, resp["error"], "not reliable data")
 }
 
 func TestHandler_RegisterSitter_ValidationError(t *testing.T) {
@@ -345,7 +345,7 @@ func TestHandler_Login_InvalidCredentials(t *testing.T) {
 
 	mockService.
 		On("Login", reqBody.Email, reqBody.Password).
-		Return(nil, "", errors.New("неверный email или пароль"))
+		Return(nil, "", errors.New("not correct email or password"))
 
 	handler.Login(rec, req)
 
@@ -353,7 +353,7 @@ func TestHandler_Login_InvalidCredentials(t *testing.T) {
 
 	var resp map[string]string
 	json.Unmarshal(rec.Body.Bytes(), &resp)
-	assert.Contains(t, resp["error"], "неверный email или пароль")
+	assert.Contains(t, resp["error"], "not correct email or password")
 
 	mockService.AssertExpectations(t)
 }
@@ -371,7 +371,7 @@ func TestHandler_Login_InvalidBody(t *testing.T) {
 
 	var resp map[string]string
 	json.Unmarshal(rec.Body.Bytes(), &resp)
-	assert.Contains(t, resp["error"], "неверные данные")
+	assert.Contains(t, resp["error"], "incorrect data")
 }
 
 func TestHandler_Login_ValidationError(t *testing.T) {

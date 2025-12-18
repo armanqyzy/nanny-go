@@ -41,7 +41,7 @@ type LoginRequest struct {
 func (h *Handler) RegisterOwner(w http.ResponseWriter, r *http.Request) {
 	var req RegisterOwnerRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверные данные")
+		respondWithError(w, http.StatusBadRequest, "incorrect data")
 		return
 	}
 
@@ -57,14 +57,14 @@ func (h *Handler) RegisterOwner(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusCreated, map[string]string{
-		"message": "владелец зарегистрирован успешно",
+		"message": "owner registered succesfully",
 	})
 }
 
 func (h *Handler) RegisterSitter(w http.ResponseWriter, r *http.Request) {
 	var req RegisterSitterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверные данные")
+		respondWithError(w, http.StatusBadRequest, "incorrect data")
 		return
 	}
 
@@ -89,14 +89,14 @@ func (h *Handler) RegisterSitter(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusCreated, map[string]string{
-		"message": "няня зарегистрирована, ожидает подтверждения",
+		"message": "nanny registered, expecting acceptance",
 	})
 }
 
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondWithError(w, http.StatusBadRequest, "неверные данные")
+		respondWithError(w, http.StatusBadRequest, "incorrect data")
 		return
 	}
 
@@ -112,7 +112,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusOK, map[string]interface{}{
-		"message":   "вход выполнен",
+		"message":   "login happened",
 		"user_id":   user.UserID,
 		"role":      user.Role,
 		"email":     user.Email,

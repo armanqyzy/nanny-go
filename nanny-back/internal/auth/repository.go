@@ -30,7 +30,7 @@ func (r *repository) CreateUser(user *models.User) (int, error) {
 	`, user.FullName, user.Email, user.Phone, user.PasswordHash, user.Role).Scan(&userID)
 
 	if err != nil {
-		return 0, fmt.Errorf("не удалось создать пользователя: %w", err)
+		return 0, fmt.Errorf("could not create a user: %w", err)
 	}
 
 	return userID, nil
@@ -53,10 +53,10 @@ func (r *repository) GetUserByEmail(email string) (*models.User, error) {
 	)
 
 	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("пользователь не найден")
+		return nil, fmt.Errorf("user not found")
 	}
 	if err != nil {
-		return nil, fmt.Errorf("ошибка получения пользователя: %w", err)
+		return nil, fmt.Errorf("error getting user: %w", err)
 	}
 
 	return user, nil
@@ -69,7 +69,7 @@ func (r *repository) CreateSitter(sitter *models.Sitter) error {
 	`, sitter.SitterID, sitter.ExperienceYears, sitter.Certificates, sitter.Preferences, sitter.Location, sitter.Status)
 
 	if err != nil {
-		return fmt.Errorf("не удалось создать профиль няни: %w", err)
+		return fmt.Errorf("could not create a nanny: %w", err)
 	}
 
 	return nil
