@@ -4,14 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard | Пет-ситтер</title>
-    <link rel="stylesheet" href="./style.css">
+    <link rel="stylesheet" href="./style.pet-startup.css">
 </head>
 <body>
 <div class="dashboard">
     <aside class="sidebar">
         <div class="sidebar-logo">
-            <h1>🐾 Nanny Pro</h1>
-            <p id="userEmail"></p>
+            <div class="brand">
+                <div class="brand-mark">🐾</div>
+                <div class="brand-text">
+                    <h1>Nanny Pro</h1>
+                    <p id="userEmail"></p>
+                </div>
+            </div>
         </div>
         <ul class="sidebar-menu">
             <li><a href="#" data-tab="overview" class="active">📊 Обзор</a></li>
@@ -21,6 +26,11 @@
             <li><a href="#" data-tab="profile">👤 Профиль</a></li>
         </ul>
         <button class="logout-btn" style="width: 100%; margin-top: 30px;" onclick="logout()">Выход</button>
+    
+        <div class="sidebar-footer">
+            <div class="sidebar-footer__brand">🐾 Nanny</div>
+            <div class="sidebar-footer__meta">Pet-startup UI • v1</div>
+        </div>
     </aside>
 
     <main class="main-content">
@@ -28,6 +38,7 @@
         <div id="overview-tab" class="tab-content">
             <div class="header">
                 <h1>Добро пожаловать!</h1>
+                <p class="header-subtitle">Управляйте сервисом быстро и удобно</p>
                 <div id="statusBadge"></div>
             </div>
 
@@ -144,6 +155,6 @@
     </div>
 </div>
 
-<script src="./sitter-dashboard.js"></script>
+<script src="sitter-dashboard.js"></script>
 </body>
 </html>
