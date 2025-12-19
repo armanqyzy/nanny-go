@@ -675,10 +675,14 @@ document.getElementById('createBookingForm').addEventListener('submit', async (e
     e.preventDefault();
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData);
-    data.owner_id = user.id;
+
+    data.owner_id  = Number(user.id);
+    data.pet_id    = Number(data.pet_id);
+    data.sitter_id = Number(data.sitter_id);
+    data.service_id= Number(data.service_id);
 
     data.start_time = new Date(data.start_time).toISOString();
-    data.end_time = new Date(data.end_time).toISOString();
+    data.end_time   = new Date(data.end_time).toISOString();
 
     try {
         const res = await authFetch('/api/bookings', {
